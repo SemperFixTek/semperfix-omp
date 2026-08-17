@@ -1,4 +1,4 @@
-﻿function Set-PoshTheme {
+function Set-PoshTheme {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ThemeName
@@ -7,7 +7,7 @@
     $themePath = Resolve-ThemePath -ThemeName $ThemeName
 
     if (-not (Test-Path $themePath)) {
-        Write-Host ([char]0x274C + " Theme not found: $themePath") -ForegroundColor Red
+        Write-Host "Theme not found: $themePath" -ForegroundColor Red
         return
     }
 
@@ -23,5 +23,5 @@
 
     oh-my-posh init pwsh --config $themePath | Invoke-Expression
 
-    Write-Host ([char]0x2714 + " Theme switched to: $ThemeName") -ForegroundColor Green
+    Write-Host "Theme switched to: $ThemeName" -ForegroundColor Green
 }
