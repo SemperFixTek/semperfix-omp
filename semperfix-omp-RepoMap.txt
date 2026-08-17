@@ -1,0 +1,34 @@
+semperfix-omp/
+│
+├── SemperFix.OMP/                # Windows PowerShell module (new)
+│   ├── SemperFix.OMP.psd1
+│   ├── SemperFix.OMP.psm1
+│   ├── Public/
+│   │   ├── Set-PoshTheme.ps1
+│   │   ├── Get-PoshThemes.ps1
+│   │   └── Select-PoshTheme.ps1
+│   ├── Private/
+│   │   └── Resolve-ThemePath.ps1
+│   ├── Scripts/
+│   │   └── Install-SemperFixOMP.ps1
+│   └── README.md
+│
+├── windows/                      # Windows-side integration
+│   ├── profile/
+│   │   ├── SemperFix-OMP-Profile-v1.3.0.ps1
+│   │   └── SemperFix-OMP-SharedSync.ps1
+│   ├── themes/
+│   └── shared/
+│       └── poshtheme.example
+│
+├── wsl/                          # WSL-side integration
+│   ├── loader/
+│   │   └── poshloader.sh
+│   ├── bashrc/
+│   │   └── semperfix-omp-bashrc-block.sh
+│   ├── diagnostics/
+│   │   └── wsl-shell-check.sh
+│   └── docs/
+│       └── README.md
+│
+└── LICENSE
