@@ -1,4 +1,4 @@
-Write-Host "Installing SemperFix OMP Module..." -ForegroundColor Cyan
+﻿Write-Host "Installing SemperFix OMP Module..." -ForegroundColor Cyan
 
 $modulePath = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules\SemperFix.OMP'
 $sourcePath = Split-Path -Parent $PSScriptRoot
