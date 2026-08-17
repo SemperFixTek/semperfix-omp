@@ -6,13 +6,11 @@ function Get-PoshThemes {
 .DESCRIPTION
     Retrieves all *.omp.json theme files from the configured theme directory
     and highlights the currently active theme.
-
-.EXAMPLE
-    Get-PoshThemes
-
-.NOTES
-    SemperFix OMP Module v1.3.0
 #>
+
+    if (-not $env:POSH_THEMES_PATH) {
+        $env:POSH_THEMES_PATH = Join-Path $env:LOCALAPPDATA 'Programs\oh-my-posh\themes'
+    }
 
     Write-Host "📂 Available Oh My Posh Themes:" -ForegroundColor Cyan
 
@@ -20,9 +18,9 @@ function Get-PoshThemes {
         Sort-Object Name |
         ForEach-Object {
             if ($_.Name -eq $env:POSH_THEMES_VERSION) {
-                Write-Host " → $_ (active)" -ForegroundColor Green
+                Write-Host " → $($_.Name) (active)" -ForegroundColor Green
             } else {
-                Write-Host "   $_"
+                Write-Host "   $($_.Name)"
             }
         }
 }

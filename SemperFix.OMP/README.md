@@ -1,45 +1,21 @@
-# SemperFix OMP Module v1.3.0
+# SemperFix.OMP PowerShell Module (v1.3.0)
 
-A cross-platform Oh My Posh theme manager providing:
+A Windows PowerShell module for managing Oh My Posh themes with:
 
-- Persistent theme storage
-- Universal theme loader
-- Theme registry
+- Persistent theme selection
+- Shared theme file for WSL sync (`%USERPROFILE%\.poshtheme`)
 - Interactive theme picker
-- Windows + WSL compatibility
-- POSH_THEMES_VERSION persistence
-
-## Installation
-
-Copy the module folder to:
-
-`$HOME\Documents\PowerShell\Modules\SemperFix.OMP`
-
-Or run:
-
-`Scripts\Install-SemperFixOMP.ps1`
+- POSH_THEMES_VERSION tracking
 
 ## Commands
 
-### Set-PoshTheme
-
-Sets and persists the active theme.
-
-### Get-PoshThemes
-
-Lists available themes.
-
-### Select-PoshTheme
-
-GUI picker for themes.
-
-Aliases:
-
-- `List-PoshThemes`
-
-- `Choose-PoshTheme`
+- `Set-PoshTheme <ThemeName>`
+- `Get-PoshThemes`
+- `Select-PoshTheme`
+- Aliases: `List-PoshThemes`, `Choose-PoshTheme`
 
 ## Requirements
 
 - PowerShell 5.1+
 - Oh My Posh installed
+- Themes in `%LOCALAPPDATA%\Programs\oh-my-posh\themes`

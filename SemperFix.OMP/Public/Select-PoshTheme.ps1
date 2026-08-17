@@ -2,17 +2,11 @@ function Select-PoshTheme {
 <#
 .SYNOPSIS
     Opens a GUI selector to choose an Oh My Posh theme.
-
-.DESCRIPTION
-    Displays all available themes in an Out-GridView picker and applies the
-    selected theme using Set-PoshTheme.
-
-.EXAMPLE
-    Select-PoshTheme
-
-.NOTES
-    SemperFix OMP Module v1.3.0
 #>
+
+    if (-not $env:POSH_THEMES_PATH) {
+        $env:POSH_THEMES_PATH = Join-Path $env:LOCALAPPDATA 'Programs\oh-my-posh\themes'
+    }
 
     $themes = Get-ChildItem $env:POSH_THEMES_PATH -Filter *.omp.json |
               Sort-Object Name

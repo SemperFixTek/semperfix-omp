@@ -1,6 +1,8 @@
 Write-Host "Installing SemperFix OMP Module..." -ForegroundColor Cyan
 
-$modulePath = "$env:USERPROFILE\Documents\PowerShell\Modules\SemperFix.OMP"
-Copy-Item -Path "$PSScriptRoot\..\SemperFix.OMP" -Destination $modulePath -Recurse -Force
+$modulePath = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules\SemperFix.OMP'
+$sourcePath = Split-Path -Parent $PSScriptRoot
 
-Write-Host "✔ Installed SemperFix OMP" -ForegroundColor Green
+Copy-Item -Path $sourcePath -Destination $modulePath -Recurse -Force
+
+Write-Host "✔ Installed SemperFix OMP to $modulePath" -ForegroundColor Green
