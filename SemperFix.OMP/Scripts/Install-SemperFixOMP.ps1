@@ -9,8 +9,9 @@ if (-not (Test-Path $moduleVersionPath)) {
     New-Item -ItemType Directory -Path $moduleVersionPath -Force | Out-Null
 }
 
-# Copy module contents into version folder
-Copy-Item -Path "$PSScriptRoot\.." -Destination $moduleVersionPath -Recurse -Force
+# Copy ONLY the contents of the module folder, not the folder itself
+$sourceModuleFolder = Split-Path $PSScriptRoot -Parent
+Copy-Item -Path "$sourceModuleFolder\*" -Destination $moduleVersionPath -Recurse -Force
 
 Write-Host "Module installed to $moduleVersionPath" -ForegroundColor Green
 
