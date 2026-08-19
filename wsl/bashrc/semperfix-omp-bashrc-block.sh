@@ -1,29 +1,35 @@
-# ────────────────────────────────────────────────
-# SemperFix OMP v2.1.0 (WSL) — Unified Theme Loader
-# ────────────────────────────────────────────────
+#export SEMPERFIX_DIAGNOSTICS=1
 
-# Ensure theme directory exists BEFORE anything else
-if [ -L "$HOME/.poshthemes" ] || [ -d "$HOME/.poshthemes" ]; then
-    rm -rf "$HOME/.poshthemes"
-fi
-ln -s /mnt/c/Users/sfx/AppData/Local/Programs/oh-my-posh/themes "$HOME/.poshthemes"
+###############################################
+# SemperFix WSL Init Module v3.2 (Corrected)
+###############################################
 
-# Prevent double-loading (bashrc is sourced twice via ~/.profile)
-if [ -n "$OMP_LOADED" ]; then
+# Prevent recursive .bashrc execution
+if [ -n "$BASHRC_GUARD" ]; then
     return
 fi
-export OMP_LOADED=1
+export BASHRC_GUARD=1
 
-export PATH="$HOME/.local/bin:$PATH"
+###############################################
+# 1. Sanitize PATH
+###############################################
+PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^/mnt/c" | tr '\n' ':')
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-# Load the poshloader (defines set_posh_theme)
+###############################################
+# 2. Ensure HOME is the working directory
+###############################################
+cd "$HOME"
+
+###############################################
+# 3. Load SemperFix Loader
+###############################################
 source "$HOME/.poshloader"
 
-# Load persisted theme from shared file or default
-SHARED_THEME_FILE="/mnt/c/Users/sfx/.poshtheme"
+###############################################
+# 4. Apply theme using loader
+###############################################
+set_posh_theme
 
-if [ -f "$SHARED_THEME_FILE" ]; then
-    set_posh_theme "$(cat "$SHARED_THEME_FILE")"
-else
-    set_posh_theme "paradox.omp.json"
-fi
+
+###
