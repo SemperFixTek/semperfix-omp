@@ -39,12 +39,13 @@ if (-not (Test-Path $SourceModulePath)) {
 }
 
 Write-Host "Installing SemperFix.OMP from $SourceModulePath"
-if (Test-Path $TargetModulePath -and -not $Force) {
+if ((Test-Path $TargetModulePath) -and (-not $Force)) {
     Write-Host "SemperFix.OMP already installed at $TargetModulePath (use -Force to overwrite)" -ForegroundColor Yellow
 } else {
     if (Test-Path $TargetModulePath) { Remove-Item $TargetModulePath -Recurse -Force }
     Copy-Item $SourceModulePath -Destination $TargetModulePath -Recurse -Force
 }
+
 
 # 4. Ensure shared theme file exists with a sane default
 if (-not (Test-Path $SharedThemeFile) -or $Force) {
