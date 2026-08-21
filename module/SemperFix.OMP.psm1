@@ -1,11 +1,25 @@
-# Load public functions
-Get-ChildItem -Path "$PSScriptRoot/Public" -Filter *.ps1 |
-    ForEach-Object { . $_.FullName }
+# SemperFix.OMP — Module Entry File
 
-# Load private helpers
-Get-ChildItem -Path "$PSScriptRoot/Private" -Filter *.ps1 |
-    ForEach-Object { . $_.FullName }
+# Import all public functions
+$publicPath = Join-Path $PSScriptRoot 'Public'
+Get-ChildItem -Path $publicPath -Filter *.ps1 | ForEach-Object {
+    . $_.FullName
+}
 
-# Aliases
-Set-Alias List-PoshThemes Get-PoshThemes
-Set-Alias Choose-PoshTheme Select-PoshTheme
+# Shared theme file (Windows side)
+$Script:SharedThemeFile = Join-Path $env:USERPROFILE '.poshtheme'
+
+function Write-ThemeFile {
+    param([string]$Theme)
+    Set-Content -Path $Script:SharedThemeFile -Value $Theme -Encoding ASCII
+}
+
+function Read-ThemeFile {
+    if (Test-Path $Script:SharedThemeFile) {
+        $raw = Get-Content $Script:SharedThemeFile -ErrorAction SilentlyContinue | Select-Object -First 1
+        return $raw.Trim()
+    }
+    return 'paradox.omp.json'
+}
+
+Export-ModuleMember -Function * -Alias *
