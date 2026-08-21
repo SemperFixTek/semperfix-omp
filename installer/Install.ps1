@@ -1,138 +1,61 @@
-<#
-    SemperFix-OMP Windows Installer v1.0.0
-    - Installs SemperFix.OMP module
-    - Wires PowerShell profile
-    - Prepares shared theme file
-    - Validates WSL + oh-my-posh
-#>
-
 param(
-    [switch]$Force
+    [string]$SourceRoot = "$PSScriptRoot",
+    [string]$ModuleName = "SemperFix.OMP",
+    [string]$ModuleVersion = "1.3.0"
 )
 
-Write-Host "SemperFix-OMP Windows Installer v1.0.0" -ForegroundColor Cyan
+Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
+Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
 
-# 1. Resolve key paths
-$UserProfile      = $env:USERPROFILE
-$Documents        = Join-Path $UserProfile 'Documents'
-$PsModulesPath    = Join-Path $Documents 'PowerShell\Modules'
-$ProfilePath      = $PROFILE
-$SharedThemeFile  = Join-Path $UserProfile '.poshtheme'
+# Resolve source paths
+$moduleSource = Join-Path $SourceRoot $ModuleName
+$versionSource = Join-Path $moduleSource $ModuleVersion
 
-# 2. Ensure module directory exists
-if (-not (Test-Path $PsModulesPath)) {
-    Write-Host "Creating PowerShell module directory at $PsModulesPath"
-    New-Item -ItemType Directory -Path $PsModulesPath -Force | Out-Null
+if (-not (Test-Path $versionSource)) {
+    Write-Error "Source module version folder not found: $versionSource"
+    exit 1
 }
 
-# 3. Install SemperFix.OMP module (correct repo layout)
-$ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot   = Split-Path $ScriptRoot -Parent
+# Resolve target module path
+$modulesRoot = Join-Path $HOME "Documents\PowerShell\Modules"
+$moduleTargetRoot = Join-Path $modulesRoot $ModuleName
+$moduleTargetVersion = Join-Path $moduleTargetRoot $ModuleVersion
 
-$SourceModulePath = Join-Path $RepoRoot 'module\SemperFix.OMP'
-$TargetModulePath = Join-Path $PsModulesPath 'SemperFix.OMP'
+Write-Host "Installing module to: $moduleTargetVersion" -ForegroundColor Yellow
 
-if (-not (Test-Path $SourceModulePath)) {
-    Write-Host "ERROR: SemperFix.OMP module source not found at $SourceModulePath" -ForegroundColor Red
-    return
+# Ensure root + version folders exist
+New-Item -Path $moduleTargetRoot -ItemType Directory -Force | Out-Null
+New-Item -Path $moduleTargetVersion -ItemType Directory -Force | Out-Null
+
+# Copy module version folder
+Copy-Item -Path (Join-Path $versionSource "*") -Destination $moduleTargetVersion -Recurse -Force
+
+# Verify manifest
+$manifestPath = Join-Path $moduleTargetVersion "$ModuleName.psd1"
+if (-not (Test-Path $manifestPath)) {
+    Write-Error "Manifest not found after copy: $manifestPath"
+    exit 1
 }
 
-Write-Host "Installing SemperFix.OMP from $SourceModulePath"
+$manifest = Test-ModuleManifest $manifestPath
+Write-Host "Module manifest validated: $($manifest.ModuleName) $($manifest.Version)" -ForegroundColor Green
 
-if ((Test-Path $TargetModulePath) -and (-not $Force)) {
-    Write-Host "SemperFix.OMP already installed at $TargetModulePath (use -Force to overwrite)" -ForegroundColor Yellow
+# Import module to confirm
+Import-Module $ModuleName -Force -ErrorAction Stop
+Write-Host "Module imported successfully." -ForegroundColor Green
+
+# Optional: install WSL loader if present
+$wslLoaderSource = Join-Path $SourceRoot "wsl\poshloader.sh"
+if (Test-Path $wslLoaderSource) {
+    Write-Host "WSL loader found, installing..." -ForegroundColor Yellow
+
+    $wslHome = "$HOME"
+    $wslLoaderTarget = Join-Path $wslHome ".poshloader"
+
+    Copy-Item -Path $wslLoaderSource -Destination $wslLoaderTarget -Force
+    Write-Host "WSL loader installed to: $wslLoaderTarget" -ForegroundColor Green
 } else {
-    if (Test-Path $TargetModulePath) { Remove-Item $TargetModulePath -Recurse -Force }
-    Copy-Item $SourceModulePath -Destination $TargetModulePath -Recurse -Force
+    Write-Host "No WSL loader found in repo (wsl\poshloader.sh). Skipping." -ForegroundColor DarkYellow
 }
 
-# 4. Ensure shared theme file exists with a sane default
-if (-not (Test-Path $SharedThemeFile) -or $Force) {
-    Write-Host "Creating shared theme file at $SharedThemeFile with default theme 'paradox.omp.json'"
-    "paradox.omp.json`r`n" | Set-Content -Path $SharedThemeFile -Encoding ASCII
-} else {
-    Write-Host "Shared theme file already exists at $SharedThemeFile"
-}
-
-# 5. Write PowerShell profile (SAFE single-quoted here-string)
-Write-Host "Updating PowerShell profile at $ProfilePath"
-
-$ProfileContent = @'
-# SemperFix-OMP Profile Bootstrap v1.0.0
-
-# Remove OneDrive module path (fast version)
-$oneDriveModulePath = "$HOME\OneDrive\Documents\PowerShell\Modules"
-$env:PSModulePath = $env:PSModulePath.Replace("$oneDriveModulePath;", "")
-
-# Ensure PowerShell 7 sees the correct module directory
-$localModulePath = "$HOME\Documents\PowerShell\Modules"
-if (-not (($env:PSModulePath -split ';') -contains $localModulePath)) {
-    $env:PSModulePath = "$localModulePath;$env:PSModulePath"
-}
-
-# Temporary fast prompt
-function Set-TemporaryPrompt {
-    $global:OMP_INITIALIZED = $false
-    function prompt { "PS> " }
-}
-Set-TemporaryPrompt
-
-# Shared theme file
-$sharedFile = Join-Path $env:USERPROFILE '.poshtheme'
-
-# Safe read
-if (Test-Path $sharedFile) {
-    $raw = Get-Content $sharedFile -ErrorAction SilentlyContinue | Select-Object -First 1
-    $theme = $raw.Trim()
-    if ([string]::IsNullOrWhiteSpace($theme)) {
-        $theme = "paradox.omp.json"
-    }
-} else {
-    $theme = "paradox.omp.json"
-}
-
-# Cache theme path
-$script:ThemePath = "$env:LOCALAPPDATA\Programs\oh-my-posh\themes\$theme"
-
-# Async OMP load using first-prompt callback
-Add-Type -TypeDefinition @"
-using System;
-public class OMPInit {
-    public static bool Initialized = false;
-}
-"@
-
-function prompt {
-    if (-not [OMPInit]::Initialized) {
-        [OMPInit]::Initialized = $true
-        oh-my-posh init pwsh --config $script:ThemePath | Invoke-Expression
-    }
-    & $function:prompt
-}
-
-# Import SemperFix.OMP (lazy but in current runspace)
-Import-Module SemperFix.OMP -ErrorAction SilentlyContinue
-'@
-
-Set-Content -Path $ProfilePath -Value $ProfileContent -Encoding UTF8
-
-# 6. Basic validation
-Write-Host "Validating oh-my-posh presence..." -NoNewline
-if (-not (Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
-    Write-Host " FAILED" -ForegroundColor Red
-    Write-Host "oh-my-posh not found. Install from https://ohmyposh.dev and re-run installer." -ForegroundColor Yellow
-} else {
-    Write-Host " OK" -ForegroundColor Green
-}
-
-Write-Host "Validating WSL presence..." -NoNewline
-if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
-    Write-Host " FAILED" -ForegroundColor Red
-    Write-Host "WSL not found or not enabled. Cross-system sync unavailable until WSL is installed." -ForegroundColor Yellow
-} else {
-    Write-Host " OK" -ForegroundColor Green
-}
-
-Write-Host ""
-Write-Host "SemperFix-OMP Windows installation complete." -ForegroundColor Cyan
-Write-Host "Open a new PowerShell 7 session to see the prompt, then run 'wsl' to verify cross-system theme sync."
+Write-Host "SemperFix-OMP installation complete." -ForegroundColor Cyan
