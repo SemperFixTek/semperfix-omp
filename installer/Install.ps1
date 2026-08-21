@@ -1,5 +1,4 @@
 param(
-    [string]$SourceRoot = "$PSScriptRoot",
     [string]$ModuleName = "SemperFix.OMP",
     [string]$ModuleVersion = "1.3.0"
 )
@@ -7,14 +6,18 @@ param(
 Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
 Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
 
-# Resolve source paths
-$moduleSource = Join-Path $SourceRoot $ModuleName
+# Detect repo root (installer folder is inside /installer)
+$RepoRoot = Split-Path $PSScriptRoot -Parent
+
+# Module source is in /modules/SemperFix.OMP/<version>
+$moduleSource = Join-Path $RepoRoot "modules\$ModuleName"
 $versionSource = Join-Path $moduleSource $ModuleVersion
 
 if (-not (Test-Path $versionSource)) {
     Write-Error "Source module version folder not found: $versionSource"
     exit 1
 }
+
 
 # Resolve target module path
 $modulesRoot = Join-Path $HOME "Documents\PowerShell\Modules"
