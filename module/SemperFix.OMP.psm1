@@ -1,12 +1,18 @@
 # SemperFix.OMP — Module Entry File
 
-# Import all public functions
+# Load public functions
 $publicPath = Join-Path $PSScriptRoot 'Public'
 Get-ChildItem -Path $publicPath -Filter *.ps1 | ForEach-Object {
     . $_.FullName
 }
 
-# Shared theme file (Windows side)
+# Load private helper functions
+$privatePath = Join-Path $PSScriptRoot 'Private'
+Get-ChildItem -Path $privatePath -Filter *.ps1 | ForEach-Object {
+    . $_.FullName
+}
+
+# Shared theme file
 $Script:SharedThemeFile = Join-Path $env:USERPROFILE '.poshtheme'
 
 function Write-ThemeFile {

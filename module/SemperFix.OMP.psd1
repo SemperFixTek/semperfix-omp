@@ -4,11 +4,13 @@
     GUID              = 'b7a3c1c4-2f6a-4b8e-9a9d-4e1b9f0c9d11'
     Author            = 'Bruce (SemperFix)'
     CompanyName       = 'SemperFix'
-    Copyright         = '(c) 2026 SemperFix'
     Description       = 'SemperFix cross-system Oh My Posh theme sync module.'
 
     PowerShellVersion = '5.1'
-    CompatiblePSEditions = @('Core','Desktop')
+    CompatiblePSEditions = @(
+        'Core',
+        'Desktop'
+    )
 
     FunctionsToExport = @(
         'Get-PoshTheme',
@@ -19,15 +21,21 @@
     CmdletsToExport   = @()
     VariablesToExport = @()
     AliasesToExport   = @(
-        'List-PoshThemes',
-        'Choose-PoshTheme',
-        'Get-PoshTheme',
-        'Select-PoshTheme'
+        'spt',
+        'gpt',
+        'cpt'
     )
 
     PrivateData = @{
-        PSData = @{
-            Tags = @('OhMyPosh','SemperFix','Prompt','Theme','WSL','Sync')
+        PSData   = @{
+            Tags   = @(
+                'OhMyPosh',
+                'SemperFix',
+                'Prompt',
+                'Theme',
+                'WSL',
+                'Sync'
+            )
         }
     }
 }
