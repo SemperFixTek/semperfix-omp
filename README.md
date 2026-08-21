@@ -30,3 +30,5 @@ Use scripts in `wsl/diagnostics/` to inspect:
 - Symlink target
 - Theme directory contents
 - Shared theme file
+
+##### README.md file v1.0.0
