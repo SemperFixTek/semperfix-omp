@@ -48,7 +48,8 @@ Import-Module $ModuleName -Force -ErrorAction Stop
 Write-Host "Module imported successfully." -ForegroundColor Green
 
 # Optional: install WSL loader if present
-$wslLoaderSource = Join-Path $SourceRoot "wsl\poshloader.sh"
+$wslLoaderSource = Join-Path $RepoRoot "wsl\poshloader.sh"
+
 if (Test-Path $wslLoaderSource) {
     Write-Host "WSL loader found, installing..." -ForegroundColor Yellow
 
@@ -60,5 +61,6 @@ if (Test-Path $wslLoaderSource) {
 } else {
     Write-Host "No WSL loader found in repo (wsl\poshloader.sh). Skipping." -ForegroundColor DarkYellow
 }
+
 
 Write-Host "SemperFix-OMP installation complete." -ForegroundColor Cyan
