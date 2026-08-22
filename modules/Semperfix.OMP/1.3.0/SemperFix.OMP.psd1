@@ -15,6 +15,9 @@
 
     AliasesToExport = @(
         'List-PoshThemes',
-        'Choose-PoshTheme'
+        'Choose-PoshTheme',
+        'spt',
+        'cpt',
+        'gpt'
     )
 }

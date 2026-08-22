@@ -9,3 +9,6 @@ Get-ChildItem -Path "$PSScriptRoot/Private" -Filter *.ps1 |
 # Aliases
 Set-Alias List-PoshThemes Get-PoshThemes
 Set-Alias Choose-PoshTheme Select-PoshTheme
+Set-Alias spt Set-PoshTheme
+Set-Alias cpt Select-PoshTheme
+Set-Alias gpt Get-PoshThemes
