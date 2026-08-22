@@ -1,3 +1,9 @@
+
+param(
+    [string]$ModuleName = "SemperFix.OMP",
+    [string]$ModuleVersion = "1.3.0"
+)
+
 # Elevation check
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
     [Security.Principal.WindowsBuiltInRole] "Administrator"))
@@ -7,10 +13,6 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-param(
-    [string]$ModuleName = "SemperFix.OMP",
-    [string]$ModuleVersion = "1.3.0"
-)
 
 Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
 Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
