@@ -25,3 +25,18 @@ set_posh_theme() {
     apply_theme
     echo "Theme switched to: $1"
 }
+
+sync_fonts() {
+    echo "[SemperFix] Syncing fonts from Windows..."
+
+    WIN_FONT_DIR=$(wslpath "$(cmd.exe /c 'echo %WINDIR%' | tr -d '\r')")/Fonts
+    WSL_FONT_DIR="$HOME/.local/share/fonts"
+
+    mkdir -p "$WSL_FONT_DIR"
+
+    cp "$WIN_FONT_DIR"/JetBrainsMono* "$WSL_FONT_DIR" 2>/dev/null
+
+    fc-cache -f "$WSL_FONT_DIR"
+
+    echo "[SemperFix] WSL font sync complete."
+}

@@ -10,7 +10,10 @@
     FunctionsToExport = @(
         'Set-PoshTheme',
         'Get-PoshThemes',
-        'Select-PoshTheme'
+        'Select-PoshTheme',
+        'Repair-PoshFont',
+        'Test-PoshFont',
+        'Sync-PoshFontWSL'
     )
 
     AliasesToExport = @(
