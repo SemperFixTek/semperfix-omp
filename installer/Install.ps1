@@ -1,11 +1,10 @@
-
 param(
     [string]$ModuleName = "SemperFix.OMP",
     [string]$ModuleVersion = "1.3.0"
 )
 
 # Elevation check
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole] "Administrator"))
 {
     Write-Host "Elevating installer..." -ForegroundColor Yellow
@@ -13,12 +12,12 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-
 Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
 Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
 
 # Detect repo root (installer folder is inside /installer)
 $RepoRoot = Split-Path $PSScriptRoot -Parent
+
 
 # Module source is in /modules/SemperFix.OMP/<version>
 $moduleSource = Join-Path $RepoRoot "modules\$ModuleName"
