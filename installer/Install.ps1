@@ -47,6 +47,52 @@ Write-Host "Module manifest validated: $($manifest.ModuleName) $($manifest.Versi
 Import-Module $ModuleName -Force -ErrorAction Stop
 Write-Host "Module imported successfully." -ForegroundColor Green
 
+Write-Host "[Fonts] Installing JetBrainsMono Nerd Font..." -ForegroundColor Yellow
+
+$fontSource = Join-Path $RepoRoot "windows\fonts"
+$fontTarget = "$env:WINDIR\Fonts"
+
+if (-not (Test-Path $fontSource)) {
+    Write-Error "Font source folder not found: $fontSource"
+    exit 1
+}
+
+# Remove old JetBrainsMono fonts
+Write-Host "[Fonts] Removing old JetBrainsMono fonts..." -ForegroundColor Yellow
+Get-ChildItem $fontTarget | Where-Object { $_.Name -like "JetBrainsMono*" } | ForEach-Object {
+    Write-Host "Removing: $($_.Name)"
+    Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+}
+
+# COM registration
+$Shell = New-Object -ComObject Shell.Application
+$FontsFolder = $Shell.NameSpace($fontTarget)
+
+Get-ChildItem -Path $fontSource -Filter *.ttf | ForEach-Object {
+    $fontFile = $_.FullName
+    Write-Host "Installing font: $($_.Name)"
+
+    Copy-Item $fontFile $fontTarget -Force
+    $FontsFolder.CopyHere($fontFile, 0x10)
+}
+
+Write-Host "[Fonts] Refreshing DirectWrite cache..." -ForegroundColor Yellow
+try {
+    rundll32.exe "C:\Windows\System32\fntcache.dll",FontCache
+    Write-Host "DirectWrite cache refreshed." -ForegroundColor Green
+} catch {
+    Write-Warning "Could not refresh DirectWrite cache. Windows will refresh automatically."
+}
+
+Write-Host "[Fonts] Verifying installation..." -ForegroundColor Yellow
+$installed = Get-ChildItem $fontTarget | Select-String "JetBrainsMono"
+if ($installed) {
+    Write-Host "JetBrainsMono Nerd Font installed successfully." -ForegroundColor Green
+} else {
+    Write-Warning "JetBrainsMono Nerd Font not detected. Installation may have failed."
+}
+
+
 # Optional: install WSL loader if present
 $wslLoaderSource = Join-Path $RepoRoot "wsl\poshloader.sh"
 
