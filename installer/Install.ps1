@@ -1,3 +1,12 @@
+# Elevation check
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
+    [Security.Principal.WindowsBuiltInRole] "Administrator"))
+{
+    Write-Host "Elevating installer..." -ForegroundColor Yellow
+    Start-Process powershell "-ExecutionPolicy Bypass -File `"$PSCommandPath`" $args" -Verb RunAs
+    exit
+}
+
 param(
     [string]$ModuleName = "SemperFix.OMP",
     [string]$ModuleVersion = "1.3.0"
@@ -57,6 +66,7 @@ if (-not (Test-Path $fontSource)) {
     exit 1
 }
 
+###
 Write-Host "[Fonts] Installing JetBrainsMono Nerd Font..." -ForegroundColor Yellow
 
 $fontSource = Join-Path $RepoRoot "windows\fonts"
