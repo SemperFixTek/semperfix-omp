@@ -1,21 +1,10 @@
 function Select-PoshTheme {
+    param()
 
-    if (-not $env:POSH_THEMES_PATH) {
-        $env:POSH_THEMES_PATH = Join-Path $env:LOCALAPPDATA 'Programs\oh-my-posh\themes'
-    }
+    $themes = Get-PoshThemes
+    $choice = $themes | Out-GridView -Title "Select a SemperFix OMP Theme" -PassThru
 
-    $themes = Get-ChildItem $env:POSH_THEMES_PATH -Filter *.omp.json |
-              Sort-Object Name
-
-    if (-not $themes) {
-        Write-Host "No themes found in $env:POSH_THEMES_PATH" -ForegroundColor Red
-        return
-    }
-
-    $selection = $themes |
-        Out-GridView -Title "Select an Oh My Posh Theme" -PassThru
-
-    if ($selection) {
-        Set-PoshTheme $selection.Name
+    if ($choice) {
+        Set-PoshTheme -Name $choice.Name
     }
 }
