@@ -1,11 +1,12 @@
 @{
     RootModule        = 'SemperFix.OMP.psm1'
-    ModuleVersion     = '1.3.0'
-    GUID              = 'b1b8e3f0-2a4f-4c9f-9f3a-ff3e2d9a7c11'
+    ModuleVersion     = '1.3.1'
+    GUID              = 'c1b7e4e4-9f4a-4f8b-9c3e-1e3f1b3a131f'
     Author            = 'Bruce (SemperFix)'
     CompanyName       = 'SemperFix'
-    Description       = 'SemperFix Oh My Posh theme manager with persistence and WSL sync.'
-    PowerShellVersion = '5.1'
+    Copyright         = '(c) 2026 SemperFix'
+    Description       = 'SemperFix Oh My Posh integration module with repo-aware font repair, WSL loader, diagnostics, and theme management.'
+    PowerShellVersion = '7.0'
 
     FunctionsToExport = @(
         'Set-PoshTheme',
