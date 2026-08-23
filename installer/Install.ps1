@@ -4,7 +4,12 @@ param(
     [switch]$Force,
     [switch]$SkipFonts
 )
-
+# Requires -Version 7.0
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host "Restarting installer under PowerShell 7..." -ForegroundColor Yellow
+    Start-Process pwsh -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" $($args -join ' ')"
+    exit
+}
 Write-Host "SemperFix-OMP Installer"
 Write-Host "Module: $ModuleName  Version: $ModuleVersion"
 
