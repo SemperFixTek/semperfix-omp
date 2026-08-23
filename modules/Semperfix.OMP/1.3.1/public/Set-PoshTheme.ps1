@@ -1,27 +1,15 @@
 function Set-PoshTheme {
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$ThemeName
+        [Parameter(Mandatory)]
+        [string]$Name
     )
 
-    $themePath = Resolve-ThemePath -ThemeName $ThemeName
-
+    $themePath = "$HOME/.poshthemes/$Name"
     if (-not (Test-Path $themePath)) {
-        Write-Host "Theme not found: $themePath" -ForegroundColor Red
+        Write-Error "[SemperFix] Theme not found: $themePath"
         return
     }
 
-    [System.Environment]::SetEnvironmentVariable(
-        'POSH_THEMES_VERSION',
-        $ThemeName,
-        'User'
-    )
-    $env:POSH_THEMES_VERSION = $ThemeName
-
-    $sharedFile = Join-Path $env:USERPROFILE '.poshtheme'
-    Set-Content -Path $sharedFile -Value $ThemeName -Encoding UTF8
-
-    oh-my-posh init pwsh --config $themePath | Invoke-Expression
-
-    Write-Host "Theme switched to: $ThemeName" -ForegroundColor Green
+    Set-Content "$HOME/.poshtheme" $Name
+    Write-Host "[SemperFix] Theme set: $Name" -ForegroundColor Green
 }
