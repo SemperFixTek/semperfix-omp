@@ -5,31 +5,29 @@ param(
     [switch]$SkipFonts
 )
 
-# Allow environment variable SEMPERFIX_SKIP_FONTS=1 to also skip fonts
+# --------------------------------------------------------------------
+# Repo root detection (stable via PSCommandPath)
+# --------------------------------------------------------------------
+$scriptPath    = $PSCommandPath
+$InstallerRoot = Split-Path $scriptPath -Parent
+$RepoRoot      = Split-Path $InstallerRoot -Parent
+
+Write-Host "RepoRoot: $RepoRoot" -ForegroundColor DarkGray
+
+# --------------------------------------------------------------------
+# SkipFonts via environment variable
+# --------------------------------------------------------------------
 if (-not $SkipFonts -and $env:SEMPERFIX_SKIP_FONTS) {
     $SkipFonts = $true
 }
 
 # --------------------------------------------------------------------
-# Robust Repo Root Detection (fixes empty $PSScriptRoot issue)
-# --------------------------------------------------------------------
-$scriptPath = $MyInvocation.MyCommand.Path
-if ($scriptPath) {
-    $RepoRoot = Split-Path $scriptPath -Parent
-} else {
-    Write-Warning "Installer was not executed as a file. Falling back to current directory."
-    $RepoRoot = Get-Location
-}
-
-Write-Host "RepoRoot: $RepoRoot" -ForegroundColor DarkGray
-
-# --------------------------------------------------------------------
-# Elevation Check
+# Elevation (under pwsh 7)
 # --------------------------------------------------------------------
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole] "Administrator"))
 {
-    Write-Host "Elevating installer..." -ForegroundColor Yellow
+    Write-Host "Elevating installer under PowerShell 7..." -ForegroundColor Yellow
     Start-Process pwsh "-ExecutionPolicy Bypass -File `"$scriptPath`" $args" -Verb RunAs
     exit
 }
@@ -38,12 +36,12 @@ Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
 Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
 
 # --------------------------------------------------------------------
-# Module Source Detection
+# Module source detection
 # --------------------------------------------------------------------
-$moduleSource = Join-Path $RepoRoot "modules\$ModuleName"
+$moduleSource  = Join-Path $RepoRoot "modules\$ModuleName"
 $versionSource = Join-Path $moduleSource $ModuleVersion
 
-Write-Host "ModuleSource: $moduleSource" -ForegroundColor DarkGray
+Write-Host "ModuleSource: $moduleSource"   -ForegroundColor DarkGray
 Write-Host "VersionSource: $versionSource" -ForegroundColor DarkGray
 
 if (-not (Test-Path $versionSource)) {
@@ -52,7 +50,7 @@ if (-not (Test-Path $versionSource)) {
 }
 
 # --------------------------------------------------------------------
-# Install Module
+# Install module
 # --------------------------------------------------------------------
 $installTarget = Join-Path $env:USERPROFILE "Documents\PowerShell\Modules\$ModuleName\$ModuleVersion"
 Write-Host "Installing module to: $installTarget" -ForegroundColor Cyan
@@ -68,7 +66,7 @@ if (Test-Path $installTarget) {
 Copy-Item -Path $versionSource -Destination $installTarget -Recurse -Force
 
 # --------------------------------------------------------------------
-# Import Module (robust: import by name + version)
+# Import module (by name + version)
 # --------------------------------------------------------------------
 try {
     Import-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -ErrorAction Stop
@@ -79,7 +77,7 @@ try {
 }
 
 # --------------------------------------------------------------------
-# Font Installation (SkipFonts supported)
+# Fonts (optional via SkipFonts)
 # --------------------------------------------------------------------
 if ($SkipFonts) {
     Write-Host "[Fonts] Skipping font installation (SkipFonts flag set)." -ForegroundColor Yellow
@@ -97,7 +95,7 @@ if ($SkipFonts) {
             Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
         }
 
-        $Shell = New-Object -ComObject Shell.Application
+        $Shell       = New-Object -ComObject Shell.Application
         $FontsFolder = $Shell.NameSpace($fontTarget)
 
         Get-ChildItem -Path $fontSource -Filter *.ttf | ForEach-Object {
@@ -117,7 +115,7 @@ if ($SkipFonts) {
 }
 
 # --------------------------------------------------------------------
-# Install WSL Loader
+# WSL loader install
 # --------------------------------------------------------------------
 try {
     $poshloaderSource = Join-Path $RepoRoot "wsl\poshloader.sh"
