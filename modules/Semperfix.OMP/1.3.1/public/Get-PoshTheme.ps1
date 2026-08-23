@@ -1,18 +1,11 @@
-function Get-PoshThemes {
+function Get-PoshTheme {
+    param()
 
-    if (-not $env:POSH_THEMES_PATH) {
-        $env:POSH_THEMES_PATH = Join-Path $env:LOCALAPPDATA 'Programs\oh-my-posh\themes'
+    $themeFile = "$HOME/.poshtheme"
+    if (-not (Test-Path $themeFile)) {
+        Write-Warning "[SemperFix] No theme selected."
+        return $null
     }
 
-    Write-Host "Available Oh My Posh Themes:" -ForegroundColor Cyan
-
-    Get-ChildItem $env:POSH_THEMES_PATH -Filter *.omp.json |
-        Sort-Object Name |
-        ForEach-Object {
-            if ($_.Name -eq $env:POSH_THEMES_VERSION) {
-                Write-Host " -> $($_.Name) (active)" -ForegroundColor Green
-            } else {
-                Write-Host "    $($_.Name)"
-            }
-        }
+    Get-Content $themeFile
 }
