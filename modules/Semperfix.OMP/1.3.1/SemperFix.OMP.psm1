@@ -27,7 +27,6 @@ $PublicFunctions = Get-ChildItem -Path $PublicPath -Filter *.ps1 |
 
 Export-ModuleMember -Function $PublicFunctions
 
-
 # Aliases
 Set-Alias List-PoshThemes Get-PoshThemes
 Set-Alias Choose-PoshTheme Select-PoshTheme
