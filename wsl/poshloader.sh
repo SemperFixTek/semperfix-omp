@@ -1,35 +1,60 @@
-#!/usr/bin/env bash
-# SemperFix-OMP WSL Loader (Instant Apply)
+###############################################
+# SemperFix OMP WSL Loader (Final Release)
+# Windows + WSL · Cross-System Theme + Font Sync
+###############################################
 
-SHARED_THEME_FILE="$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')")/.poshtheme"
-WIN_THEMES="$(wslpath "$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')")/Programs/oh-my-posh/themes"
+# Ensure Windows interop paths exist
+export PATH="$PATH:/mnt/c/Windows/System32:/mnt/c/Windows"
 
-# Read theme
-if [ -f "$SHARED_THEME_FILE" ]; then
-    theme="$(head -n 1 "$SHARED_THEME_FILE" | tr -d '\r' | xargs)"
-else
-    theme="paradox.omp.json"
-fi
+###############################################
+# Shared Paths
+###############################################
 
-# Initialize OMP
-apply_theme() {
-    eval "$(oh-my-posh init bash --config "$WIN_THEMES/$theme")"
-}
+# Shared theme file (Windows → WSL)
+SHARED_THEME_FILE=$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' | tr -d '\r')")/.poshtheme
 
-apply_theme
+# Symlinked theme directory (points to Windows themes)
+POSH_THEMES_LINK="$HOME/.poshthemes"
 
-# Change theme from WSL
+# Default theme fallback
+CURRENT_THEME="paradox.omp.json"
+
+###############################################
+# Instant Theme Switcher
+###############################################
 set_posh_theme() {
-    echo "$1" > "$SHARED_THEME_FILE"
-    theme="$1"
-    apply_theme
-    echo "Theme switched to: $1"
+
+    # Allow override via argument
+    if [ -n "$1" ]; then
+        CURRENT_THEME="$1"
+    fi
+
+    # Validate theme file
+    if [ ! -f "$POSH_THEMES_LINK/$CURRENT_THEME" ]; then
+        echo "❌ Theme not found: $POSH_THEMES_LINK/$CURRENT_THEME"
+        return 1
+    fi
+
+    # Apply theme
+    eval "$(oh-my-posh init bash --config "$POSH_THEMES_LINK/$CURRENT_THEME")"
+    export OMP_LOADED=1
+
+    # Atomic, Windows-safe write back to shared file
+    TMP_FILE="${SHARED_THEME_FILE}.tmp"
+    printf "%s\r\n" "$CURRENT_THEME" > "$TMP_FILE"
+    mv -f "$TMP_FILE" "$SHARED_THEME_FILE"
+
+    echo "✔ Theme applied: $CURRENT_THEME"
 }
 
+###############################################
+# WSL Font Sync (Windows → WSL)
+###############################################
 sync_fonts() {
     echo "[SemperFix] Syncing fonts from Windows..."
 
-    WIN_FONT_DIR=$(wslpath "$(cmd.exe /c 'echo %WINDIR%' | tr -d '\r')")/Fonts
+    # Absolute path — avoids cmd.exe dependency
+    WIN_FONT_DIR="/mnt/c/Windows/Fonts"
     WSL_FONT_DIR="$HOME/.local/share/fonts"
 
     mkdir -p "$WSL_FONT_DIR"
@@ -40,3 +65,15 @@ sync_fonts() {
 
     echo "[SemperFix] WSL font sync complete."
 }
+
+###############################################
+# Loader Initialization
+###############################################
+
+# Load current theme from shared file if present
+if [ -f "$SHARED_THEME_FILE" ]; then
+    CURRENT_THEME=$(cat "$SHARED_THEME_FILE")
+fi
+
+# Apply theme on shell startup
+set_posh_theme "$CURRENT_THEME"
