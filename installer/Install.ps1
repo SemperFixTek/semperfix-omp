@@ -14,17 +14,18 @@ Write-Host "SemperFix‑OMP Installer" -ForegroundColor Cyan
 Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
 
 # ---------------------------------------------------------------------------
-# Elevation (pwsh only — no Windows PowerShell fallback)
+# Elevation (pwsh only)
 # ---------------------------------------------------------------------------
-$IsAdmin = ([Security.Principal.WindowsPrincipal]
-            [Security.Principal.WindowsIdentity]::GetCurrent()
-           ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$IsAdmin = ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $IsAdmin) {
     Write-Host "Elevating installer..." -ForegroundColor Yellow
     Start-Process pwsh -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" $($args -join ' ')"
     exit
 }
+
 
 # ---------------------------------------------------------------------------
 # Detect RepoRoot (installer folder is /installer)
