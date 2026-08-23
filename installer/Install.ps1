@@ -1,6 +1,6 @@
 param(
     [string]$ModuleName = "SemperFix.OMP",
-    [string]$ModuleVersion = "1.3.0",
+    [string]$ModuleVersion = "1.3.1",
     [switch]$Force,
     [switch]$SkipFonts
 )
