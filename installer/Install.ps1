@@ -1,134 +1,133 @@
+<#
+SemperFix‑OMP Installer v1.3.1
+Bruce — SemperFix Automation Suite
+#>
+
 param(
-    [string]$ModuleName = "SemperFix.OMP",
+    [string]$ModuleName    = "SemperFix.OMP",
     [string]$ModuleVersion = "1.3.1",
     [switch]$Force,
     [switch]$SkipFonts
 )
 
-# --------------------------------------------------------------------
-# Repo root detection (stable via PSCommandPath)
-# --------------------------------------------------------------------
-$scriptPath    = $PSCommandPath
-$InstallerRoot = Split-Path $scriptPath -Parent
-$RepoRoot      = Split-Path $InstallerRoot -Parent
+Write-Host "SemperFix‑OMP Installer" -ForegroundColor Cyan
+Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
 
-Write-Host "RepoRoot: $RepoRoot" -ForegroundColor DarkGray
+# ---------------------------------------------------------------------------
+# Elevation (pwsh only — no Windows PowerShell fallback)
+# ---------------------------------------------------------------------------
+$IsAdmin = ([Security.Principal.WindowsPrincipal]
+            [Security.Principal.WindowsIdentity]::GetCurrent()
+           ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-# --------------------------------------------------------------------
-# SkipFonts via environment variable
-# --------------------------------------------------------------------
-if (-not $SkipFonts -and $env:SEMPERFIX_SKIP_FONTS) {
-    $SkipFonts = $true
-}
-
-# --------------------------------------------------------------------
-# Elevation (under pwsh 7)
-# --------------------------------------------------------------------
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-    [Security.Principal.WindowsBuiltInRole] "Administrator"))
-{
-    Write-Host "Elevating installer under PowerShell 7..." -ForegroundColor Yellow
-    Start-Process pwsh "-ExecutionPolicy Bypass -File `"$scriptPath`" $args" -Verb RunAs
+if (-not $IsAdmin) {
+    Write-Host "Elevating installer..." -ForegroundColor Yellow
+    Start-Process pwsh -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" $($args -join ' ')"
     exit
 }
 
-Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
-Write-Host "Module: $ModuleName  Version: $ModuleVersion" -ForegroundColor Cyan
+# ---------------------------------------------------------------------------
+# Detect RepoRoot (installer folder is /installer)
+# ---------------------------------------------------------------------------
+$RepoRoot = Split-Path $PSscriptRoot -Parent
+Write-Host "RepoRoot: $RepoRoot" -ForegroundColor Yellow
 
-# --------------------------------------------------------------------
-# Module source detection
-# --------------------------------------------------------------------
-$moduleSource  = Join-Path $RepoRoot "modules\$ModuleName"
-$versionSource = Join-Path $moduleSource $ModuleVersion
+# Write RepoRoot config for module + WSL
+$ConfigPath = Join-Path $env:USERPROFILE ".semperfix-omp.json"
+@{ RepoRoot = $RepoRoot } | ConvertTo-Json | Set-Content $ConfigPath
 
-Write-Host "ModuleSource: $moduleSource"   -ForegroundColor DarkGray
-Write-Host "VersionSource: $versionSource" -ForegroundColor DarkGray
+# ---------------------------------------------------------------------------
+# Resolve module source folder
+# ---------------------------------------------------------------------------
+$ModuleSourceRoot = Join-Path $RepoRoot "modules\$ModuleName"
+$VersionSource    = Join-Path $ModuleSourceRoot $ModuleVersion
 
-if (-not (Test-Path $versionSource)) {
-    Write-Error "Module version folder not found: $versionSource"
+Write-Host "ModuleSource: $ModuleSourceRoot"
+Write-Host "VersionSource: $VersionSource"
+
+if (-not (Test-Path $VersionSource)) {
+    Write-Error "Module version folder not found: $VersionSource"
     exit 1
 }
 
-# --------------------------------------------------------------------
-# Install module
-# --------------------------------------------------------------------
-$installTarget = Join-Path $env:USERPROFILE "Documents\PowerShell\Modules\$ModuleName\$ModuleVersion"
-Write-Host "Installing module to: $installTarget" -ForegroundColor Cyan
+# ---------------------------------------------------------------------------
+# Resolve installation target
+# ---------------------------------------------------------------------------
+$TargetRoot = Join-Path $env:USERPROFILE "Documents\PowerShell\Modules\$ModuleName"
+$TargetVersion = Join-Path $TargetRoot $ModuleVersion
 
-if (Test-Path $installTarget) {
-    if ($Force) {
-        Remove-Item $installTarget -Recurse -Force -ErrorAction SilentlyContinue
-    } else {
-        Write-Host "Module already exists. Use -Force to overwrite." -ForegroundColor Yellow
+Write-Host "Installing module to: $TargetVersion"
+
+if (Test-Path $TargetVersion -and $Force) {
+    Remove-Item $TargetVersion -Recurse -Force
+}
+
+New-Item -ItemType Directory -Force -Path $TargetVersion | Out-Null
+
+# ---------------------------------------------------------------------------
+# Copy module files
+# ---------------------------------------------------------------------------
+Copy-Item "$VersionSource\*" $TargetVersion -Recurse -Force
+
+# ---------------------------------------------------------------------------
+# Validate manifest
+# ---------------------------------------------------------------------------
+$ManifestPath = Join-Path $TargetVersion "$ModuleName.psd1"
+$Manifest = Test-ModuleManifest $ManifestPath
+
+Write-Host "Module manifest validated: $($Manifest.Version)"
+
+# ---------------------------------------------------------------------------
+# Import module
+# ---------------------------------------------------------------------------
+Import-Module $TargetVersion -Force
+
+Write-Host "Module imported successfully." -ForegroundColor Green
+
+# ---------------------------------------------------------------------------
+# Fonts (Windows only)
+# ---------------------------------------------------------------------------
+if (-not $SkipFonts) {
+
+    Write-Host "[Fonts] Installing JetBrainsMono Nerd Font..." -ForegroundColor Cyan
+
+    $FontSource = Join-Path $RepoRoot "windows\fonts"
+    $FontTarget = "$env:WINDIR\Fonts"
+
+    if (-not (Test-Path $FontSource)) {
+        Write-Warning "[Fonts] Font source not found: $FontSource"
     }
-}
-
-Copy-Item -Path $versionSource -Destination $installTarget -Recurse -Force
-
-# --------------------------------------------------------------------
-# Import module (by name + version)
-# --------------------------------------------------------------------
-try {
-    Import-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -ErrorAction Stop
-    Write-Host "Module imported successfully." -ForegroundColor Green
-} catch {
-    Write-Error "Failed to import module: $_"
-    exit 1
-}
-
-# --------------------------------------------------------------------
-# Fonts (optional via SkipFonts)
-# --------------------------------------------------------------------
-if ($SkipFonts) {
-    Write-Host "[Fonts] Skipping font installation (SkipFonts flag set)." -ForegroundColor Yellow
-} else {
-    Write-Host "[Fonts] Installing JetBrainsMono Nerd Font..." -ForegroundColor Yellow
-
-    $fontSource = Join-Path $RepoRoot "windows\fonts"
-    $fontTarget = "$env:WINDIR\Fonts"
-
-    if (-not (Test-Path $fontSource)) {
-        Write-Warning "Font source folder not found: $fontSource. Skipping fonts."
-    } else {
+    else {
         Write-Host "[Fonts] Removing old JetBrainsMono fonts..." -ForegroundColor Yellow
-        Get-ChildItem $fontTarget | Where-Object { $_.Name -like "JetBrainsMono*" } | ForEach-Object {
-            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
-        }
+
+        Get-ChildItem $FontTarget | Where-Object { $_.Name -like "JetBrainsMono*" } |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+
+        Write-Host "[Fonts] Installing new fonts..." -ForegroundColor Yellow
 
         $Shell       = New-Object -ComObject Shell.Application
-        $FontsFolder = $Shell.NameSpace($fontTarget)
+        $FontsFolder = $Shell.NameSpace($FontTarget)
 
-        Get-ChildItem -Path $fontSource -Filter *.ttf | ForEach-Object {
-            $fontFile = $_.FullName
+        Get-ChildItem $FontSource -Filter *.ttf | ForEach-Object {
             Write-Host "Installing font: $($_.Name)"
-            Copy-Item $fontFile $fontTarget -Force
-            $FontsFolder.CopyHere($fontFile, 0x10)
+            Copy-Item $_.FullName $FontTarget -Force -ErrorAction SilentlyContinue
+            $FontsFolder.CopyHere($_.FullName, 0x10)
         }
 
-        Write-Host "[Fonts] Refreshing DirectWrite cache..." -ForegroundColor Yellow
-        try {
-            rundll32.exe "C:\Windows\System32\fntcache.dll",FontCache
-        } catch {
-            Write-Warning "Could not refresh DirectWrite cache."
-        }
+        Write-Host "[Fonts] Refreshing DirectWrite cache..."
+        rundll32.exe "C:\Windows\System32\fntcache.dll",FontCache
     }
 }
 
-# --------------------------------------------------------------------
-# WSL loader install
-# --------------------------------------------------------------------
-try {
-    $poshloaderSource = Join-Path $RepoRoot "wsl\poshloader.sh"
-    $poshloaderTarget = Join-Path $env:USERPROFILE ".poshloader"
+# ---------------------------------------------------------------------------
+# Install WSL loader
+# ---------------------------------------------------------------------------
+$WSLLoaderSource = Join-Path $RepoRoot "wsl\poshloader.sh"
+$WSLLoaderTarget = "$HOME/.poshloader"
 
-    if (Test-Path $poshloaderSource) {
-        Copy-Item -Path $poshloaderSource -Destination $poshloaderTarget -Force
-        Write-Host "WSL loader installed to: $poshloaderTarget" -ForegroundColor Green
-    } else {
-        Write-Warning "WSL loader source not found: $poshloaderSource"
-    }
-} catch {
-    Write-Warning "Failed to install WSL loader: $_"
+if (Test-Path $WSLLoaderSource) {
+    Write-Host "[WSL] Installing poshloader..." -ForegroundColor Cyan
+    wsl bash -c "cp `"`$(wslpath -a -u $WSLLoaderSource)`" `"`$(wslpath -a -u $WSLLoaderTarget)`""
 }
 
-Write-Host "SemperFix-OMP installation complete." -ForegroundColor Cyan
+Write-Host "SemperFix‑OMP installation complete." -ForegroundColor Green
