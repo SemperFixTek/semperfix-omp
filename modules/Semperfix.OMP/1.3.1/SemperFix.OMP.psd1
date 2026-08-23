@@ -4,24 +4,35 @@
     GUID              = 'c1b7e4e4-9f4a-4f8b-9c3e-1e3f1b3a131f'
     Author            = 'Bruce (SemperFix)'
     CompanyName       = 'SemperFix'
-    Copyright         = '(c) 2026 SemperFix'
-    Description       = 'SemperFix Oh My Posh integration module with repo-aware font repair, WSL loader, diagnostics, and theme management.'
+    Description       = 'SemperFix Oh My Posh integration module with repo-aware font repair, WSL sync, theme management, and diagnostics.'
     PowerShellVersion = '7.0'
 
     FunctionsToExport = @(
-        'Set-PoshTheme',
+        'Get-PoshTheme',
         'Get-PoshThemes',
         'Select-PoshTheme',
+        'Set-PoshTheme',
         'Repair-PoshFont',
-        'Test-PoshFont',
-        'Sync-PoshFontWSL'
+        'Sync-PoshFontWSL',
+        'Test-SemperFixFont'
     )
 
     AliasesToExport = @(
-        'List-PoshThemes',
-        'Choose-PoshTheme',
-        'spt',
-        'cpt',
-        'gpt'
+        'gpt', 'spt', 'ppt', 'rpf', 'spf'
     )
+
+    PrivateData = @{
+        PSData = @{
+            Tags        = @('SemperFix','OMP','WSL','Fonts','Themes')
+            ProjectUri  = 'https://github.com/semperfix/semperfix-omp'
+            ReleaseNotes = @'
+v1.3.1
+- RepoRoot config added
+- Repair-PoshFont rewritten (Windows + WSL dual-mode)
+- Sync-PoshFontWSL rewritten (UNC-safe)
+- WSL loader updated
+- Public/Private loader fixed
+'@
+        }
+    }
 }
