@@ -1,30 +1,25 @@
-###############################################
-# SemperFix OMP WSL Loader (robust, no-cmd.exe)
-###############################################
+# ~/.poshloader — SemperFix v1.3.1
 
-# Ensure Windows interop paths exist (best-effort)
-export PATH="$PATH:/mnt/c/Windows/System32:/mnt/c/Windows"
+# --- UNC PATH FIX ---
+# If WSL is launched from \\wsl.localhost\..., force a safe working directory
+case "$PWD" in
+    \\*) cd ~ ;;
+esac
 
-###############################################
-# Helper: resolve Windows user profile path
-###############################################
+# --- Resolve Windows user profile safely ---
 resolve_win_userprofile() {
-    # If cmd.exe exists and current working directory is not a UNC path, use it
     if command -v cmd.exe >/dev/null 2>&1; then
-        # Convert current WSL path to Windows path and check for UNC prefix
         winpwd=$(wslpath -w "$PWD" 2>/dev/null || echo "")
         case "$winpwd" in
-            \\* ) use_cmd=false ;;
-            * ) use_cmd=true ;;
+            \\*) use_cmd=false ;;
+            *)   use_cmd=true ;;
         esac
 
         if [ "$use_cmd" = true ]; then
-            # run cmd.exe safely
             wslpath "$(cmd.exe /c 'echo %USERPROFILE%' | tr -d '\r')" 2>/dev/null && return 0
         fi
     fi
 
-    # Fallback: guess from /mnt/c/Users using $USER if present
     WIN_USERS_DIR="/mnt/c/Users"
     if [ -d "$WIN_USERS_DIR" ]; then
         if [ -n "$USER" ] && [ -d "$WIN_USERS_DIR/$USER" ]; then
@@ -32,7 +27,6 @@ resolve_win_userprofile() {
             return 0
         fi
 
-        # pick first non-system user folder
         for d in "$WIN_USERS_DIR"/*; do
             name=$(basename "$d")
             case "$name" in
@@ -42,74 +36,39 @@ resolve_win_userprofile() {
         done
     fi
 
-    # Last resort
     echo "/mnt/c/Users/Public"
-    return 0
 }
 
-###############################################
-# Shared Paths (resolved at runtime)
-###############################################
-WIN_USERPROFILE_PATH=$(resolve_win_userprofile)
-# If resolve returned a Windows path (e.g., /mnt/c/Users/You), use it directly.
-# Shared theme file lives in the Windows user profile root as .poshtheme
-SHARED_THEME_FILE="$WIN_USERPROFILE_PATH/.poshtheme"
+WINHOME=$(resolve_win_userprofile)
 
-# Symlinked theme directory (points to Windows themes)
-POSH_THEMES_LINK="$HOME/.poshthemes"
+# --- Theme path linking ---
+POSH_THEMES_LINK="$WINHOME/AppData/Local/Programs/oh-my-posh/themes"
 
-# Default theme fallback
-CURRENT_THEME="paradox.omp.json"
+# If ~/.poshthemes does not exist, create symlink
+if [ ! -e "$HOME/.poshthemes" ]; then
+    ln -s "$POSH_THEMES_LINK" "$HOME/.poshthemes"
+fi
 
-###############################################
-# Instant Theme Switcher
-###############################################
-set_posh_theme() {
-    if [ -n "$1" ]; then
-        CURRENT_THEME="$1"
-    fi
-
-    if [ ! -f "$POSH_THEMES_LINK/$CURRENT_THEME" ]; then
-        echo "❌ Theme not found: $POSH_THEMES_LINK/$CURRENT_THEME"
-        return 1
-    fi
-
-    eval "$(oh-my-posh init bash --config "$POSH_THEMES_LINK/$CURRENT_THEME")"
-    export OMP_LOADED=1
-
-    TMP_FILE="${SHARED_THEME_FILE}.tmp"
-    printf "%s\r\n" "$CURRENT_THEME" > "$TMP_FILE"
-    mv -f "$TMP_FILE" "$SHARED_THEME_FILE"
-
-    echo "✔ Theme applied: $CURRENT_THEME"
-}
-
-###############################################
-# WSL Font Sync (Windows → WSL)
-###############################################
+# --- sync_fonts function ---
 sync_fonts() {
     echo "[SemperFix] Syncing fonts from Windows..."
+    mkdir -p "$HOME/.local/share/fonts"
 
-    # Absolute path — avoids cmd.exe dependency
-    WIN_FONT_DIR="/mnt/c/Windows/Fonts"
-    WSL_FONT_DIR="$HOME/.local/share/fonts"
+    cp "$WINHOME/Documents/PowerShell/Modules/SemperFix.OMP/1.3.1/windows/fonts/"*.ttf \
+       "$HOME/.local/share/fonts/" 2>/dev/null
 
-    mkdir -p "$WSL_FONT_DIR"
-
-    # Copy matching JetBrainsMono files; ignore errors
-    cp "$WIN_FONT_DIR"/JetBrainsMono* "$WSL_FONT_DIR" 2>/dev/null || true
-
-    # Rebuild font cache
-    fc-cache -f "$WSL_FONT_DIR" >/dev/null 2>&1 || true
-
+    fc-cache -f
     echo "[SemperFix] WSL font sync complete."
 }
 
-###############################################
-# Loader Initialization
-###############################################
-if [ -f "$SHARED_THEME_FILE" ]; then
-    CURRENT_THEME=$(cat "$SHARED_THEME_FILE")
-fi
+# --- set_posh_theme ---
+set_posh_theme() {
+    theme="$1"
+    if [ ! -f "$HOME/.poshthemes/$theme" ]; then
+        echo "❌ Theme not found: $HOME/.poshthemes/$theme"
+        return 1
+    fi
 
-set_posh_theme "$CURRENT_THEME"
+    echo "$theme" > "$HOME/.poshtheme"
+    echo "✔ Theme applied: $theme"
+}
