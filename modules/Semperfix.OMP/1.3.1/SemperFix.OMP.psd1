@@ -18,7 +18,12 @@
     )
 
     AliasesToExport = @(
-        'gpt', 'spt', 'ppt', 'rpf', 'spf'
+        'gpt',
+        'spt',
+        'ppt',
+        'rpf',
+        'spf',
+        'Choose-PoshTheme'
     )
 
     PrivateData = @{
