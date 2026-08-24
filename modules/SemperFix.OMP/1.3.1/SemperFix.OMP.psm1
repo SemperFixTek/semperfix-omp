@@ -1,4 +1,4 @@
-# SemperFix.OMP.psm1 — v1.3.1 loader
+# SemperFix.OMP.psm1 v1.3.1 loader
 
 # Dot‑source all Public functions
 $PublicPath = Join-Path $PSScriptRoot "public"
