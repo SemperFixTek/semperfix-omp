@@ -1,6 +1,6 @@
 @{
     RootModule        = 'SemperFix.OMP.psm1'
-    ModuleVersion     = '1.3.3'
+    ModuleVersion     = '1.3.2'
     GUID              = 'c1b7e4e4-9f4a-4f8b-9c3e-1e3f1b3a131f'
     Author            = 'Bruce (SemperFix)'
     CompanyName       = 'SemperFix'
@@ -13,7 +13,8 @@
         'Select-PoshTheme',
         'Set-PoshTheme',
         'Repair-PoshFont',
-        'Sync-PoshFontWSL'
+        'Sync-PoshFontWSL',
+        'Test-SemperFixFont'
     )
 
     AliasesToExport = @(
@@ -21,7 +22,8 @@
         'spt',
         'cpt',
         'rpf',
-        'spf'
+        'spf',
+        'Choose-PoshTheme'
     )
 
     PrivateData = @{
@@ -29,12 +31,12 @@
             Tags        = @('SemperFix','OMP','WSL','Fonts','Themes')
             ProjectUri  = 'https://github.com/semperfix/semperfix-omp'
             ReleaseNotes = @'
-v1.3.3
-- Corrected manifest exports
-- Corrected alias definitions
-- Removed invalid alias/function names
-- Windows module now exports correctly
-- WSL loader finalized
+v1.3.1
+- RepoRoot config added
+- Repair-PoshFont rewritten (Windows + WSL dual-mode)
+- Sync-PoshFontWSL rewritten (UNC-safe)
+- WSL loader updated
+- Public/Private loader fixed
 '@
         }
     }
