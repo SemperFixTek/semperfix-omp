@@ -15,6 +15,12 @@ if [ -n "$SEMPERFIX_WSL_LOADED" ]; then
 fi
 export SEMPERFIX_WSL_LOADED=1
 
+# Read diagnostics flag from Windows environment
+if [ -z "$SEMPERFIX_WSL_DIAG" ]; then
+    WIN_DIAG=$(cmd.exe /c "echo %SEMPERFIX_WSL_DIAG%" 2>/dev/null | tr -d '\r')
+    [ -n "$WIN_DIAG" ] && export SEMPERFIX_WSL_DIAG="$WIN_DIAG"
+fi
+
 # Diagnostics Mode Toggle
 DIAG=${SEMPERFIX_WSL_DIAG:-0}
 
