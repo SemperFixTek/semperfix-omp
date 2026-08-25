@@ -4,64 +4,98 @@ function Repair-PoshFont {
 
     Write-Host "[SemperFix] Repairing JetBrainsMono Nerd Font..." -ForegroundColor Cyan
 
-    $IsWSL = $false
-    if ($env:WSL_DISTRO_NAME) { $IsWSL = $true }
+    # Detect WSL
+    $isWSL = $null -ne $env:WSL_DISTRO_NAME
 
-    $ConfigPathWin = Join-Path $env:USERPROFILE ".semperfix-omp.json"
-    $ConfigPathWSL = "$HOME/.semperfix-omp.json"
+    # Load RepoRoot from config
+    $configPathWin = Join-Path $env:USERPROFILE ".semperfix-omp.json"
+    $configPathWSL = "$HOME/.semperfix-omp.json"
 
-    $RepoRoot = $null
+    $repoRoot = $null
 
-    if (-not $IsWSL -and (Test-Path $ConfigPathWin)) {
-        $RepoRoot = (Get-Content $ConfigPathWin | ConvertFrom-Json).RepoRoot
+    if (-not $isWSL -and (Test-Path $configPathWin)) {
+        $repoRoot = (Get-Content $configPathWin | ConvertFrom-Json).RepoRoot
     }
 
-    if ($IsWSL -and (Test-Path $ConfigPathWSL)) {
-        $RepoRoot = (Get-Content $ConfigPathWSL | ConvertFrom-Json).RepoRoot
+    if ($isWSL -and (Test-Path $configPathWSL)) {
+        $repoRoot = (Get-Content $configPathWSL | ConvertFrom-Json).RepoRoot
     }
 
-    if (-not $RepoRoot) {
+    # Fallback: module-relative RepoRoot
+    if ($null -eq $repoRoot) {
         $moduleRoot = Split-Path $PSScriptRoot -Parent
-        $RepoRoot   = Split-Path $moduleRoot -Parent
-        Write-Warning "[SemperFix] Falling back to module-relative RepoRoot: $RepoRoot"
+        $repoRoot   = Split-Path $moduleRoot -Parent
+        Write-Warning "[SemperFix] Falling back to module-relative RepoRoot: $repoRoot"
     }
 
-    $FontSource = Join-Path $RepoRoot "windows/fonts"
+    # Resolve font source
+    $fontSource = Join-Path $repoRoot "windows/fonts"
 
-    if (-not (Test-Path $FontSource)) {
-        Write-Error "[SemperFix] Font source folder not found: $FontSource"
+    if (-not (Test-Path $fontSource)) {
+        Write-Error "[SemperFix] Font source folder not found: $fontSource"
         return
     }
 
-    if (-not $IsWSL) {
-        $FontTarget = "$env:WINDIR\Fonts"
+    if (-not $isWSL) {
+        # Windows mode
+        $fontTarget = "$env:WINDIR\Fonts"
 
         Write-Host "[SemperFix] Removing old JetBrainsMono fonts..." -ForegroundColor Yellow
-        Get-ChildItem $FontTarget | Where-Object { $_.Name -like "JetBrainsMono*" } |
+        Get-ChildItem $fontTarget |
+            Where-Object { $_.Name -like "JetBrainsMono*" } |
             Remove-Item -Force -ErrorAction SilentlyContinue
 
         Write-Host "[SemperFix] Installing JetBrainsMono Nerd Font..." -ForegroundColor Yellow
 
-        $Shell       = New-Object -ComObject Shell.Application
-        $FontsFolder = $Shell.NameSpace($FontTarget)
+        $shell       = New-Object -ComObject Shell.Application
+        $fontsFolder = $shell.NameSpace($fontTarget)
 
-        Get-ChildItem -Path $FontSource -Filter *.ttf | ForEach-Object {
-            Copy-Item $_.FullName $FontTarget -Force
-            $FontsFolder.CopyHere($_.FullName, 0x10)
+        Get-ChildItem -Path $fontSource -Filter *.ttf | ForEach-Object {
+            Copy-Item $_.FullName $fontTarget -Force
+            $fontsFolder.CopyHere($_.FullName, 0x10)
         }
 
-        rundll32.exe "C:\Windows\System32\fntcache.dll",FontCache
+        try {
+            rundll32.exe "C:\Windows\System32\fntcache.dll",FontCache
+        }
+        catch {
+            Write-Warning "[SemperFix] Could not refresh DirectWrite cache."
+        }
+
         Write-Host "[SemperFix] JetBrainsMono Nerd Font repair complete." -ForegroundColor Green
-        return
+
+        return [PSCustomObject]@{
+            Platform   = "Windows"
+            RepoRoot   = $repoRoot
+            FontSource = $fontSource
+            FontTarget = $fontTarget
+            Status     = "Success"
+        }
     }
 
-    $WSLFontTarget = "$HOME/.local/share/fonts"
-    mkdir $WSLFontTarget -Force | Out-Null
+    # WSL mode
+    $wslFontTarget = "$HOME/.local/share/fonts"
+    if (-not (Test-Path $wslFontTarget)) {
+        New-Item -ItemType Directory -Path $wslFontTarget | Out-Null
+    }
 
-    $WSLFontSource = wslpath -a -u $FontSource
+    $wslFontSource = wslpath -a -u $fontSource
 
-    cp "$WSLFontSource/*.ttf" "$WSLFontTarget/" 2>$null
+    # PowerShell-native copy
+    Get-ChildItem -Path $wslFontSource -Filter *.ttf |
+        ForEach-Object {
+            Copy-Item $_.FullName $wslFontTarget -Force
+        }
+
     fc-cache -f
 
     Write-Host "[SemperFix] JetBrainsMono Nerd Font repair complete (WSL)." -ForegroundColor Green
+
+    return [PSCustomObject]@{
+        Platform   = "WSL"
+        RepoRoot   = $repoRoot
+        FontSource = $wslFontSource
+        FontTarget = $wslFontTarget
+        Status     = "Success"
+    }
 }
