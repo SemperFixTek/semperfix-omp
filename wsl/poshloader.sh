@@ -6,7 +6,7 @@
 # Enable diagnostics by running:
 #   export SEMPERFIX_WSL_DIAG=1
 #   unset SEMPERFIX_WSL_DIAG
-#   to disable diagnostics
+# to disable diagnostics
 # ============================================================
 
 # Prevent double-loading
@@ -15,14 +15,21 @@ if [ -n "$SEMPERFIX_WSL_LOADED" ]; then
 fi
 export SEMPERFIX_WSL_LOADED=1
 
-# Read diagnostics flag from Windows environment
+# Pull diagnostics flag from Windows environment
 if [ -z "$SEMPERFIX_WSL_DIAG" ]; then
     WIN_DIAG=$(cmd.exe /c "echo %SEMPERFIX_WSL_DIAG%" 2>/dev/null | tr -d '\r')
-    [ -n "$WIN_DIAG" ] && export SEMPERFIX_WSL_DIAG="$WIN_DIAG"
+    if [ "$WIN_DIAG" != "%SEMPERFIX_WSL_DIAG%" ] && [ -n "$WIN_DIAG" ]; then
+        export SEMPERFIX_WSL_DIAG="$WIN_DIAG"
+    fi
 fi
 
-# Diagnostics Mode Toggle
 DIAG=${SEMPERFIX_WSL_DIAG:-0}
+
+if [ "$DIAG" -eq 1 ]; then
+    echo "=== SemperFix WSL Loader Diagnostics ==="
+    echo "[Diag] SEMPERFIX_WSL_DIAG: $SEMPERFIX_WSL_DIAG"
+fi
+
 
 # 1. Configure your Windows username once
 WIN_USER="User"   # <-- set this to your actual Windows username
