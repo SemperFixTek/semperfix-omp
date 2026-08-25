@@ -52,20 +52,46 @@ Write-Host "Module manifest validated: $ModuleVersion"
 Write-Host "[SemperFix] Module installed. Import manually if needed:" -ForegroundColor Yellow
 Write-Host "  Import-Module $ModuleName -Force"
 
+# ================================
+# SemperFix-OMP Deterministic Font Installer
+# ================================
+
 if (-not $SkipFonts) {
+
     $FontSource = Join-Path $RepoRoot "fonts"
     $FontTarget = "C:\Windows\Fonts"
 
-    if (Test-Path $FontSource) {
-        Write-Host "[Fonts] Installing fonts..."
-        Get-ChildItem $FontSource -Filter *.ttf | ForEach-Object {
-            $dest = Join-Path $FontTarget $_.Name
-            if (-not (Test-Path $dest)) {
-                Copy-Item $_.FullName $dest -Force
-                Write-Host "Installed font: $($_.Name)"
-            }
+    if (-not (Test-Path $FontSource)) {
+        Write-Warning "[Fonts] Font source folder not found: $FontSource"
+        return
+    }
+
+    $FontFiles = Get-ChildItem $FontSource -Filter *.ttf -ErrorAction SilentlyContinue
+
+    if (-not $FontFiles) {
+        Write-Warning "[Fonts] No .ttf files found in $FontSource"
+        return
+    }
+
+    Write-Host "[Fonts] Installing fonts using COM registration..." -ForegroundColor Cyan
+
+    # COM-based font installation (required for Windows 10/11)
+    $Shell = New-Object -ComObject Shell.Application
+    $FontsFolder = $Shell.NameSpace(0x14)   # Windows Fonts special folder
+
+    foreach ($font in $FontFiles) {
+        try {
+            Write-Host "[Fonts] Installing: $($font.Name)"
+            $FontsFolder.CopyHere($font.FullName, 0x10)  # 0x10 = No UI
+            Start-Sleep -Milliseconds 250
+        }
+        catch {
+            Write-Warning "[Fonts] Failed to install: $($font.Name)"
         }
     }
+
+    Write-Host "[Fonts] Font installation complete." -ForegroundColor Green
 }
+
 
 Write-Host "SemperFix-OMP installation complete." -ForegroundColor Green
