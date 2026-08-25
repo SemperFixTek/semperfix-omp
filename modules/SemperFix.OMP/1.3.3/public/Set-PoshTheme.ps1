@@ -1,41 +1,34 @@
-function Select-PoshTheme {
-    param()
-
-    $themes = Get-PoshThemes
+function Set-PoshTheme {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
 
     # Detect WSL
     $isWSL = $null -ne $env:WSL_DISTRO_NAME
 
-    # Detect if Out-GridView is available (PowerShell 7 requires GraphicalTools)
-    $hasOGV = $null -ne (Get-Command Out-GridView -ErrorAction SilentlyContinue)
+    # Determine theme directory
+    if ($isWSL) {
+        # WSL uses symlinked ~/.poshthemes
+        $themeDir = "$HOME/.poshthemes"
+    }
+    else {
+        # Windows uses LOCALAPPDATA theme directory
+        $themeDir = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Programs\oh-my-posh\themes"
+    }
 
-    if (-not $isWSL -and $hasOGV) {
-        # Windows GUI picker
-        $choice = $themes | Out-GridView -Title "Select a SemperFix OMP Theme" -PassThru
+    # Build full theme path
+    $themePath = Join-Path -Path $themeDir -ChildPath $Name
 
-        if ($null -ne $choice) {
-            Set-PoshTheme -Name $choice.Name
-        }
+    if (-not (Test-Path -Path $themePath)) {
+        Write-Error "[SemperFix] Theme not found: $themePath"
         return
     }
 
-    # Console fallback (WSL or Windows Terminal)
-    Write-Host "Available themes:" -ForegroundColor Cyan
+    # Sync file (shared between Windows + WSL)
+    $syncFile = "$HOME/.poshtheme"
+    Set-Content -Path $syncFile -Value $Name -Encoding UTF8
 
-    for ($i = 0; $i -lt $themes.Count; $i++) {
-        Write-Host ("{0}. {1}" -f ($i + 1), $themes[$i].Name)
-    }
-
-    $selection = Read-Host "Enter theme number"
-
-    if ($selection -match '^\d+$' -and
-        [int]$selection -ge 1 -and
-        [int]$selection -le $themes.Count) {
-
-        $theme = $themes[[int]$selection - 1].Name
-        Set-PoshTheme -Name $theme
-    }
-    else {
-        Write-Host "[SemperFix] Invalid selection." -ForegroundColor Red
-    }
+    Write-Host "[SemperFix] Theme set: $Name" -ForegroundColor Green
 }

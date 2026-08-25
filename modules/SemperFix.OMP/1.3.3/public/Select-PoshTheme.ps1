@@ -1,19 +1,20 @@
 function Select-PoshTheme {
+    [CmdletBinding()]
     param()
 
     $themes = Get-PoshThemes
 
     # Detect WSL
-    $isWSL = $env:WSL_DISTRO_NAME -ne $null
+    $isWSL = $null -ne $env:WSL_DISTRO_NAME
 
-    # Detect if Out-GridView is available
-    $hasOGV = Get-Command Out-GridView -ErrorAction SilentlyContinue
+    # Detect if Out-GridView is available (PowerShell 7 requires GraphicalTools)
+    $hasOGV = $null -ne (Get-Command -Name Out-GridView -ErrorAction SilentlyContinue)
 
     if (-not $isWSL -and $hasOGV) {
         # Windows GUI picker
         $choice = $themes | Out-GridView -Title "Select a SemperFix OMP Theme" -PassThru
 
-        if ($choice) {
+        if ($null -ne $choice) {
             Set-PoshTheme -Name $choice.Name
         }
         return
@@ -21,19 +22,22 @@ function Select-PoshTheme {
 
     # Console fallback (WSL or Windows Terminal)
     Write-Host "Available themes:" -ForegroundColor Cyan
-    $i = 1
-    foreach ($t in $themes) {
-        Write-Host "$i. $($t.Name)"
-        $i++
+
+    for ($i = 0; $i -lt $themes.Count; $i++) {
+        Write-Host ("{0}. {1}" -f ($i + 1), $themes[$i].Name)
     }
 
     $selection = Read-Host "Enter theme number"
-    if ($selection -match '^\d+$' -and $selection -ge 1 -and $selection -le $themes.Count) {
-        $theme = $themes[$selection - 1].Name
+
+    if (
+        $selection -match '^\d+$' -and
+        [int]$selection -ge 1 -and
+        [int]$selection -le $themes.Count
+    ) {
+        $theme = $themes[[int]$selection - 1].Name
         Set-PoshTheme -Name $theme
     }
     else {
         Write-Host "[SemperFix] Invalid selection." -ForegroundColor Red
     }
 }
-
