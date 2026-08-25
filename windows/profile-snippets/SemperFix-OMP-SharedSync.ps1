@@ -1,10 +1,34 @@
-# SemperFix OMP Shared Theme Sync
+# SemperFix-OMP Shared Sync Helper
 
-$sharedFile = Join-Path $env:USERPROFILE '.poshtheme'
+function Get-SemperFixThemeSyncFile {
+    return "$HOME\.poshtheme"
+}
 
-if (Test-Path $sharedFile) {
-    $theme = Get-Content $sharedFile -ErrorAction SilentlyContinue
-    if ($theme) {
-        $env:POSH_THEMES_VERSION = $theme
+function Get-SemperFixThemeName {
+    $SyncFile = Get-SemperFixThemeSyncFile
+
+    if (Test-Path $SyncFile) {
+        $theme = Get-Content $SyncFile -Raw
+        if (-not [string]::IsNullOrWhiteSpace($theme)) {
+            return $theme.Trim()
+        }
+    }
+
+    return "paradox.omp.json"
+}
+
+function Get-SemperFixThemeDirectory {
+    if ($IsWindows) {
+        return Join-Path $env:LOCALAPPDATA "Programs\oh-my-posh\themes"
+    } else {
+        return "$HOME/.poshthemes"
     }
 }
+
+function Get-SemperFixThemePath {
+    $theme = Get-SemperFixThemeName
+    $dir   = Get-SemperFixThemeDirectory
+    return Join-Path $dir $theme
+}
+
+Export-ModuleMember -Function Get-SemperFixThemeSyncFile,Get-SemperFixThemeName,Get-SemperFixThemeDirectory,Get-SemperFixThemePath
