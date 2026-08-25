@@ -1,77 +1,134 @@
 #!/bin/bash
-# SemperFix-OMP WSL loader (diagnostic mode)
+# SemperFix-OMP WSL loader (Windows-backed sync)
 
-echo "=== SemperFix WSL Loader Diagnostics ==="
+# ============================================================
+# Diagnostics Mode Toggle
+# Enable diagnostics by running:
+#   export SEMPERFIX_WSL_DIAG=1
+#   unset SEMPERFIX_WSL_DIAG
+#   to disable diagnostics
+# ============================================================
 
-# 1. Show starting directory
-echo "[Diag] Starting directory: $(pwd)"
-
-# 2. Force a safe working directory if UNC
-if [[ "$(pwd)" == \\* ]]; then
-    echo "[Diag] UNC path detected, forcing cd to HOME"
-    cd $HOME
-    echo "[Diag] New directory: $(pwd)"
+# Prevent double-loading
+if [ -n "$SEMPERFIX_WSL_LOADED" ]; then
+    return
 fi
+export SEMPERFIX_WSL_LOADED=1
 
-# 3. Resolve Windows username via cmd.exe
-WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r')
+# Diagnostics Mode Toggle
+DIAG=${SEMPERFIX_WSL_DIAG:-0}
 
-echo "[Diag] WIN_USER resolved as: '$WIN_USER'"
+# 1. Configure your Windows username once
+WIN_USER="User"   # <-- set this to your actual Windows username
 
-if [[ -z "$WIN_USER" ]]; then
-    echo "[Error] WIN_USER is empty — Windows interop failed."
-    echo "[Hint] This happens when WSL starts from a UNC path or cmd.exe cannot resolve the user."
-fi
-
-# 4. Build Windows home path
 WIN_HOME="/mnt/c/Users/$WIN_USER"
-echo "[Diag] WIN_HOME: $WIN_HOME"
-
-# 5. Theme sync file
 SYNC_FILE="$WIN_HOME/.poshtheme"
-echo "[Diag] SYNC_FILE: $SYNC_FILE"
-
-if [[ ! -f "$SYNC_FILE" ]]; then
-    echo "[Error] Sync file not found!"
-else
-    echo "[Diag] Sync file contents: $(cat "$SYNC_FILE")"
-fi
-
-# 6. Windows theme directory
 WIN_THEME_DIR="$WIN_HOME/AppData/Local/Programs/oh-my-posh/themes"
-echo "[Diag] WIN_THEME_DIR: $WIN_THEME_DIR"
-
-if [[ ! -d "$WIN_THEME_DIR" ]]; then
-    echo "[Error] Windows theme directory not found!"
-fi
-
-# 7. WSL theme directory (symlink)
 WSL_THEME_DIR="$HOME/.poshthemes"
-echo "[Diag] WSL_THEME_DIR: $WSL_THEME_DIR"
 
-if [[ -L "$WSL_THEME_DIR" ]]; then
-    echo "[Diag] Symlink exists → $(readlink "$WSL_THEME_DIR")"
-elif [[ -d "$WSL_THEME_DIR" ]]; then
-    echo "[Diag] WARNING: .poshthemes exists but is NOT a symlink"
-else
-    echo "[Diag] Creating symlink: $WSL_THEME_DIR → $WIN_THEME_DIR"
-    ln -s "$WIN_THEME_DIR" "$WSL_THEME_DIR"
+# ============================================================
+# Diagnostics Block (only runs when DIAG=1)
+# ============================================================
+
+if [ "$DIAG" -eq 1 ]; then
+    echo "=== SemperFix WSL Loader Diagnostics ==="
+    echo "[Diag] WIN_HOME: $WIN_HOME"
+    echo "[Diag] SYNC_FILE: $SYNC_FILE"
+    echo "[Diag] WIN_THEME_DIR: $WIN_THEME_DIR"
+    echo "[Diag] WSL_THEME_DIR: $WSL_THEME_DIR"
 fi
 
-# 8. Resolve theme path using SharedSync.ps1
-echo "[Diag] Calling SharedSync.ps1..."
-THEME_PATH=$(pwsh -NoLogo -NoProfile -Command "& '$HOME/SemperFix/SemperFix-OMP-SharedSync.ps1'; Get-SemperFixThemePath")
+# ============================================================
+# Core Loader Logic (always runs)
+# ============================================================
 
-echo "[Diag] SharedSync returned THEME_PATH: $THEME_PATH"
-
-# 9. Check if theme file exists
-if [[ ! -f "$THEME_PATH" ]]; then
-    echo "[Error] Theme file not found at: $THEME_PATH"
-    echo "[Error] WSL cannot load the theme."
-else
-    echo "[Diag] Theme file exists."
-    echo "[Diag] Initializing Oh My Posh..."
-    eval "$(oh-my-posh init bash --config "$THEME_PATH")"
+# Ensure Windows theme dir exists
+if [ ! -d "$WIN_THEME_DIR" ]; then
+    [ "$DIAG" -eq 1 ] && echo "[Error] Windows theme directory not found: $WIN_THEME_DIR"
+    return
 fi
 
-echo "=== End Diagnostics ==="
+# Ensure symlink points to Windows themes
+if [ -L "$WSL_THEME_DIR" ]; then
+    [ "$DIAG" -eq 1 ] && echo "[Diag] Existing symlink → $(readlink "$WSL_THEME_DIR")"
+    rm "$WSL_THEME_DIR"
+fi
+
+if [ -d "$WSL_THEME_DIR" ]; then
+    [ "$DIAG" -eq 1 ] && echo "[Diag] WARNING: .poshthemes is a directory, removing to create symlink"
+    rm -rf "$WSL_THEME_DIR"
+fi
+
+[ "$DIAG" -eq 1 ] && echo "[Diag] Creating symlink: $WSL_THEME_DIR → $WIN_THEME_DIR"
+ln -s "$WIN_THEME_DIR" "$WSL_THEME_DIR"
+
+# Read theme name from Windows sync file
+if [ -f "$SYNC_FILE" ]; then
+    THEME_NAME=$(head -n 1 "$SYNC_FILE" | tr -d '\r\n')
+    [ -z "$THEME_NAME" ] && THEME_NAME="jandedobbeleer.omp.json"
+else
+    [ "$DIAG" -eq 1 ] && echo "[Diag] Sync file missing, using default theme."
+    THEME_NAME="jandedobbeleer.omp.json"
+fi
+
+THEME_PATH="$WSL_THEME_DIR/$THEME_NAME"
+
+[ "$DIAG" -eq 1 ] && echo "[Diag] THEME_NAME: $THEME_NAME"
+[ "$DIAG" -eq 1 ] && echo "[Diag] THEME_PATH: $THEME_PATH"
+
+if [ ! -f "$THEME_PATH" ]; then
+    [ "$DIAG" -eq 1 ] && echo "[Error] Theme not found: $THEME_PATH"
+    return
+fi
+
+[ "$DIAG" -eq 1 ] && echo "[Diag] Initializing Oh My Posh (Windows-backed theme)..."
+eval "$(oh-my-posh init bash --config "$THEME_PATH")"
+
+[ "$DIAG" -eq 1 ] && echo "=== End Diagnostics ==="
+
+
+# ============================================================
+# SemperFix WSL Theme Commands (Functional)
+# ============================================================
+
+set_posh_theme() {
+    local theme="$1"
+
+    if [ -z "$theme" ]; then
+        echo "Usage: set_posh_theme <theme-file>"
+        return 1
+    fi
+
+    echo "[WSL] Setting theme to: $theme"
+
+    # Write to Windows sync file
+    echo "$theme" > "$SYNC_FILE"
+
+    # Reload OMP
+    local theme_path="$WSL_THEME_DIR/$theme"
+
+    if [ ! -f "$theme_path" ]; then
+        echo "[Error] Theme not found: $theme_path"
+        return 1
+    fi
+
+    eval "$(oh-my-posh init bash --config "$theme_path")"
+    echo "[WSL] Theme applied."
+}
+
+get_posh_theme() {
+    if [ -f "$SYNC_FILE" ]; then
+        head -n 1 "$SYNC_FILE"
+    else
+        echo "No theme set."
+    fi
+}
+
+choose_posh_theme() {
+    echo "Available themes:"
+    ls "$WSL_THEME_DIR"/*.omp.json | sed 's#.*/##'
+
+    echo
+    read -p "Enter theme name: " theme
+    set_posh_theme "$theme"
+}
