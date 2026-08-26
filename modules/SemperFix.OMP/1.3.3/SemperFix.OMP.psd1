@@ -1,6 +1,6 @@
 @{
     RootModule        = 'SemperFix.OMP.psm1'
-    ModuleVersion     = '1.3.3'
+    ModuleVersion     = '1.0'
     GUID              = 'c1b7e4e4-9f4a-4f8b-9c3e-1e3f1b3a131f'
     Author            = 'Bruce (SemperFix)'
     CompanyName       = 'SemperFix'
