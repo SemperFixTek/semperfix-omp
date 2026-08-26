@@ -1,97 +1,129 @@
-# SemperFix-OMP Installer
+# SemperFix-OMP Installer v1.3.3
 
+[CmdletBinding()]
 param(
     [switch]$Force,
     [switch]$SkipFonts
 )
 
-Write-Host "SemperFix-OMP Installer" -ForegroundColor Cyan
+Write-Host "SemperFix-OMP Installer v1.3.3" -ForegroundColor Cyan
 
-$RepoRoot    = Split-Path $PSCommandPath -Parent | Split-Path -Parent
-$ModuleName  = "SemperFix.OMP"
-$ModuleSource = Join-Path $RepoRoot "modules\$ModuleName"
+# -------------------------
+# Resolve repo + module paths
+# -------------------------
 
-$VersionFolder = Get-ChildItem $ModuleSource -Directory | Sort-Object Name -Descending | Select-Object -First 1
-$ModuleVersion = $VersionFolder.Name
-$VersionSource = $VersionFolder.FullName
+$repoRoot     = Split-Path -Path $PSCommandPath -Parent | Split-Path -Parent
+$moduleName   = 'SemperFix.OMP'
+$moduleSource = Join-Path -Path $repoRoot -ChildPath "modules\$moduleName"
 
-Write-Host "Module: $ModuleName  Version: $ModuleVersion"
-Write-Host "RepoRoot: $RepoRoot"
-Write-Host "ModuleSource: $ModuleSource"
-Write-Host "VersionSource: $VersionSource"
+$versionFolder = Get-ChildItem -Path $moduleSource -Directory |
+    Sort-Object -Property Name -Descending |
+    Select-Object -First 1
 
-$UserModuleRoot = Join-Path $HOME "Documents\PowerShell\Modules\$ModuleName"
-$TargetVersion  = Join-Path $UserModuleRoot $ModuleVersion
+$moduleVersion = $versionFolder.Name
+$versionSource = $versionFolder.FullName
 
-Write-Host "Installing module to: $TargetVersion"
+Write-Host "Module: $moduleName  Version: $moduleVersion"
+Write-Host "RepoRoot: $repoRoot"
+Write-Host "ModuleSource: $moduleSource"
+Write-Host "VersionSource: $versionSource"
 
-if ($Force -and (Test-Path $TargetVersion)) {
-    Remove-Item $TargetVersion -Recurse -Force
+# -------------------------
+# Install module to user scope
+# -------------------------
+
+$userModuleRoot = Join-Path -Path $HOME -ChildPath "Documents\PowerShell\Modules\$moduleName"
+$targetVersion  = Join-Path -Path $userModuleRoot -ChildPath $moduleVersion
+
+Write-Host "Installing module to: $targetVersion"
+
+if ($Force.IsPresent -and (Test-Path -Path $targetVersion)) {
+    Remove-Item -Path $targetVersion -Recurse -Force
 }
 
-New-Item -ItemType Directory -Path $TargetVersion -Force | Out-Null
+New-Item -ItemType Directory -Path $targetVersion -Force | Out-Null
 
-# Safe copy
-Get-ChildItem -Path $VersionSource -Recurse -Force | ForEach-Object {
-    $relative = $_.FullName.Substring($VersionSource.Length).TrimStart('\','/')
-    $dest     = Join-Path $TargetVersion $relative
+Get-ChildItem -Path $versionSource -Recurse -Force | ForEach-Object {
+    $relative = $_.FullName.Substring($versionSource.Length).TrimStart('\','/')
+    $dest     = Join-Path -Path $targetVersion -ChildPath $relative
 
     if ($_.PSIsContainer) {
-        if (-not (Test-Path $dest)) {
+        if (-not (Test-Path -Path $dest)) {
             New-Item -ItemType Directory -Path $dest | Out-Null
         }
-    } else {
-        Copy-Item $_.FullName $dest -Force
+    }
+    else {
+        Copy-Item -Path $_.FullName -Destination $dest -Force
     }
 }
 
-$ManifestPath = Join-Path $TargetVersion "$ModuleName.psd1"
-Test-ModuleManifest $ManifestPath | Out-Null
-Write-Host "Module manifest validated: $ModuleVersion"
+$manifestPath = Join-Path -Path $targetVersion -ChildPath "$moduleName.psd1"
+Test-ModuleManifest -Path $manifestPath | Out-Null
+Write-Host "Module manifest validated: $moduleVersion"
 
-Write-Host "[SemperFix] Module installed. Import manually if needed:" -ForegroundColor Yellow
-Write-Host "  Import-Module $ModuleName -Force"
+# -------------------------
+# Inject module into profile
+# -------------------------
 
-# ================================
-# SemperFix-OMP Deterministic Font Installer
-# ================================
+$profilePath = $PROFILE
+$importLine  = 'Import-Module SemperFix.OMP'
 
-if (-not $SkipFonts) {
-
-    $FontSource = Join-Path $RepoRoot "fonts"
-    $FontTarget = "C:\Windows\Fonts"
-
-    if (-not (Test-Path $FontSource)) {
-        Write-Warning "[Fonts] Font source folder not found: $FontSource"
-        return
-    }
-
-    $FontFiles = Get-ChildItem $FontSource -Filter *.ttf -ErrorAction SilentlyContinue
-
-    if (-not $FontFiles) {
-        Write-Warning "[Fonts] No .ttf files found in $FontSource"
-        return
-    }
-
-    Write-Host "[Fonts] Installing fonts using COM registration..." -ForegroundColor Cyan
-
-    # COM-based font installation (required for Windows 10/11)
-    $Shell = New-Object -ComObject Shell.Application
-    $FontsFolder = $Shell.NameSpace(0x14)   # Windows Fonts special folder
-
-    foreach ($font in $FontFiles) {
-        try {
-            Write-Host "[Fonts] Installing: $($font.Name)"
-            $FontsFolder.CopyHere($font.FullName, 0x10)  # 0x10 = No UI
-            Start-Sleep -Milliseconds 250
-        }
-        catch {
-            Write-Warning "[Fonts] Failed to install: $($font.Name)"
-        }
-    }
-
-    Write-Host "[Fonts] Font installation complete." -ForegroundColor Green
+if (-not (Test-Path -Path $profilePath)) {
+    New-Item -ItemType File -Path $profilePath -Force | Out-Null
 }
 
+$profileContent = Get-Content -Path $profilePath -ErrorAction SilentlyContinue
+
+if ($profileContent -notcontains $importLine) {
+    Add-Content -Path $profilePath -Value $importLine
+}
+
+Write-Host "[SemperFix] Module auto-load enabled in profile: $profilePath" -ForegroundColor Green
+
+# -------------------------
+# Import module immediately
+# -------------------------
+
+Import-Module -Name $moduleName -Force
+Write-Host "[SemperFix] Module imported." -ForegroundColor Green
+
+# -------------------------
+# Deterministic font installer
+# -------------------------
+
+if (-not $SkipFonts.IsPresent) {
+    $fontSource = Join-Path -Path $repoRoot -ChildPath 'fonts'
+    $fontTarget = 'C:\Windows\Fonts'
+
+    if (-not (Test-Path -Path $fontSource)) {
+        Write-Warning "[Fonts] Font source folder not found: $fontSource"
+    }
+    else {
+        $fontFiles = Get-ChildItem -Path $fontSource -Filter *.ttf -ErrorAction SilentlyContinue
+
+        if (-not $fontFiles) {
+            Write-Warning "[Fonts] No .ttf files found in $fontSource"
+        }
+        else {
+            Write-Host "[Fonts] Installing fonts using COM registration..." -ForegroundColor Cyan
+
+            $shell       = New-Object -ComObject Shell.Application
+            $fontsFolder = $shell.NameSpace(0x14)
+
+            foreach ($font in $fontFiles) {
+                try {
+                    Write-Host "[Fonts] Installing: $($font.Name)"
+                    $fontsFolder.CopyHere($font.FullName, 0x10)
+                    Start-Sleep -Milliseconds 250
+                }
+                catch {
+                    Write-Warning "[Fonts] Failed to install: $($font.Name)"
+                }
+            }
+
+            Write-Host "[Fonts] Font installation complete." -ForegroundColor Green
+        }
+    }
+}
 
 Write-Host "SemperFix-OMP installation complete." -ForegroundColor Green
