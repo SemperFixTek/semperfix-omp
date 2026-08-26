@@ -29,11 +29,11 @@ Write-Host "ModuleSource: $moduleSource"
 Write-Host "VersionSource: $versionSource"
 
 # -------------------------
-# Install module to user scope
+# Install module to user scope (NO VERSION SUBFOLDER)
 # -------------------------
 
 $userModuleRoot = Join-Path -Path $HOME -ChildPath "Documents\PowerShell\Modules\$moduleName"
-$targetVersion  = Join-Path -Path $userModuleRoot -ChildPath $moduleVersion
+$targetVersion  = $userModuleRoot   # Manifest modules must NOT use version subfolders
 
 Write-Host "Installing module to: $targetVersion"
 
@@ -56,6 +56,7 @@ Get-ChildItem -Path $versionSource -Recurse -Force | ForEach-Object {
         Copy-Item -Path $_.FullName -Destination $dest -Force
     }
 }
+
 
 $manifestPath = Join-Path -Path $targetVersion -ChildPath "$moduleName.psd1"
 Test-ModuleManifest -Path $manifestPath | Out-Null
