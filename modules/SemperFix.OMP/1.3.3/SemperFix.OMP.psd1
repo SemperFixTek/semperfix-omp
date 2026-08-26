@@ -13,7 +13,8 @@
         'Select-PoshTheme',
         'Set-PoshTheme',
         'Repair-PoshFont',
-        'Sync-PoshFontWSL'
+        'Sync-PoshFontWSL',
+        'Test-PoshFont'
     )
 
     AliasesToExport = @(
