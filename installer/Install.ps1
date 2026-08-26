@@ -1,4 +1,4 @@
-# SemperFix-OMP Installer v1.3.3
+# SemperFix-OMP Installer v1.3.3 (Corrected Versioned Install)
 
 [CmdletBinding()]
 param(
@@ -29,11 +29,11 @@ Write-Host "ModuleSource: $moduleSource"
 Write-Host "VersionSource: $versionSource"
 
 # -------------------------
-# Install module to user scope (NO VERSION SUBFOLDER)
+# Install module to user scope (VERSIONED SUBFOLDER)
 # -------------------------
 
 $userModuleRoot = Join-Path -Path $HOME -ChildPath "Documents\PowerShell\Modules\$moduleName"
-$targetVersion  = $userModuleRoot   # Manifest modules must NOT use version subfolders
+$targetVersion  = Join-Path -Path $userModuleRoot -ChildPath $moduleVersion  # <-- FIXED
 
 Write-Host "Installing module to: $targetVersion"
 
@@ -56,7 +56,6 @@ Get-ChildItem -Path $versionSource -Recurse -Force | ForEach-Object {
         Copy-Item -Path $_.FullName -Destination $dest -Force
     }
 }
-
 
 $manifestPath = Join-Path -Path $targetVersion -ChildPath "$moduleName.psd1"
 Test-ModuleManifest -Path $manifestPath | Out-Null
@@ -82,7 +81,7 @@ if ($profileContent -notcontains $importLine) {
 Write-Host "[SemperFix] Module auto-load enabled in profile: $profilePath" -ForegroundColor Green
 
 # -------------------------
-# Import module immediately
+# Import module immediately (manifest-first)
 # -------------------------
 
 Import-Module -Name $moduleName -Force
