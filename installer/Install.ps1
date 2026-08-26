@@ -1,4 +1,4 @@
-# SemperFix-OMP Installer v1.3.3 (Corrected Versioned Install)
+# SemperFix-OMP Installer v1.3.3 (Final Manifest-Compatible Version)
 
 [CmdletBinding()]
 param(
@@ -29,23 +29,23 @@ Write-Host "ModuleSource: $moduleSource"
 Write-Host "VersionSource: $versionSource"
 
 # -------------------------
-# Install module to user scope (VERSIONED SUBFOLDER)
+# Install module to user scope (FLAT FOLDER - REQUIRED FOR MANIFEST MODULES)
 # -------------------------
 
 $userModuleRoot = Join-Path -Path $HOME -ChildPath "Documents\PowerShell\Modules\$moduleName"
-$targetVersion  = Join-Path -Path $userModuleRoot -ChildPath $moduleVersion  # <-- FIXED
+$targetPath     = $userModuleRoot   # <-- manifest must live directly here
 
-Write-Host "Installing module to: $targetVersion"
+Write-Host "Installing module to: $targetPath"
 
-if ($Force.IsPresent -and (Test-Path -Path $targetVersion)) {
-    Remove-Item -Path $targetVersion -Recurse -Force
+if ($Force.IsPresent -and (Test-Path -Path $targetPath)) {
+    Remove-Item -Path $targetPath -Recurse -Force
 }
 
-New-Item -ItemType Directory -Path $targetVersion -Force | Out-Null
+New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
 
 Get-ChildItem -Path $versionSource -Recurse -Force | ForEach-Object {
     $relative = $_.FullName.Substring($versionSource.Length).TrimStart('\','/')
-    $dest     = Join-Path -Path $targetVersion -ChildPath $relative
+    $dest     = Join-Path -Path $targetPath -ChildPath $relative
 
     if ($_.PSIsContainer) {
         if (-not (Test-Path -Path $dest)) {
@@ -57,7 +57,7 @@ Get-ChildItem -Path $versionSource -Recurse -Force | ForEach-Object {
     }
 }
 
-$manifestPath = Join-Path -Path $targetVersion -ChildPath "$moduleName.psd1"
+$manifestPath = Join-Path -Path $targetPath -ChildPath "$moduleName.psd1"
 Test-ModuleManifest -Path $manifestPath | Out-Null
 Write-Host "Module manifest validated: $moduleVersion"
 
