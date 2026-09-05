@@ -1,19 +1,14 @@
+# SemperFix-OMP Profile Bootstrap v1.0.0
+
 # Remove OneDrive module path (fast version)
 $oneDriveModulePath = "$HOME\OneDrive\Documents\PowerShell\Modules"
 $env:PSModulePath = $env:PSModulePath.Replace("$oneDriveModulePath;", "")
 
 # Ensure PowerShell 7 sees the correct module directory
 $localModulePath = "$HOME\Documents\PowerShell\Modules"
-if (-not ($env:PSModulePath -split ';' | Where-Object { $_ -eq $localModulePath })) {
+if (-not (($env:PSModulePath -split ';') -contains $localModulePath)) {
     $env:PSModulePath = "$localModulePath;$env:PSModulePath"
 }
-
-# Temporary fast prompt
-function Set-TemporaryPrompt {
-    $global:OMP_INITIALIZED = $false
-    function prompt { "PS> " }
-}
-Set-TemporaryPrompt
 
 # Shared theme file
 $sharedFile = Join-Path $env:USERPROFILE '.poshtheme'
@@ -23,18 +18,19 @@ if (Test-Path $sharedFile) {
     $raw = Get-Content $sharedFile -ErrorAction SilentlyContinue | Select-Object -First 1
     $theme = $raw.Trim()
     if ([string]::IsNullOrWhiteSpace($theme)) {
-        $theme = 'paradox.omp.json'
+        $theme = "paradox.omp.json"
     }
 } else {
-    $theme = 'paradox.omp.json'
+    $theme = "paradox.omp.json"
 }
 
 # Cache theme path
 $script:ThemePath = "$env:LOCALAPPDATA\Programs\oh-my-posh\themes\$theme"
 
-# Async OMP load using first-prompt callback
-$script:ThemePath = "$env:LOCALAPPDATA\Programs\oh-my-posh\themes\$theme"
+# Import SemperFix.OMP early so its functions are available
+Import-Module SemperFix.OMP -ErrorAction SilentlyContinue
 
+# Async OMP load using first-prompt callback
 Add-Type -TypeDefinition @"
 using System;
 public class OMPInit {
@@ -49,10 +45,4 @@ function prompt {
     }
     & $function:prompt
 }
-
-
-# Async SemperFix module load
-Register-EngineEvent -SourceIdentifier SemperFix-Init -Action {
-    Import-Module SemperFix.OMP -ErrorAction SilentlyContinue
-} | Out-Null
-New-Event -SourceIdentifier SemperFix-Init | Out-Null
+Import-Module SemperFix.OMP
