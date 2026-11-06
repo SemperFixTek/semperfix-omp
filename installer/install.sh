@@ -11,20 +11,20 @@ WSL_HOME="$HOME"
 WIN_HOME="$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')")"
 SHARED_THEME_FILE="$WIN_HOME/.poshtheme"
 WSL_LOADER="$WSL_HOME/.poshloader"
-WSL_THEMES="$WSL_HOME/.posh-themes"
+WSL_THEMES="$WSL_HOME/.poshthemes"
 WIN_THEMES="$(wslpath "$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')")/Programs/oh-my-posh/themes"
 
 # 2. Validate oh-my-posh
-#if ! command -v oh-my-posh >/dev/null 2>&1; then
-#    echo "ERROR: oh-my-posh not found in WSL."
-#    echo "Install it with: sudo apt install oh-my-posh"
-#   exit 1
-#fi
+if ! command --version oh-my-posh >/dev/null 2>&1; then
+    echo "ERROR: oh-my-posh not found in WSL."
+    echo "Install it with: sudo apt install oh-my-posh"
+   exit 1
+fi
 
 # 3. Validate shared theme file
 if [ ! -f "$SHARED_THEME_FILE" ]; then
     echo "Creating shared theme file at $SHARED_THEME_FILE"
-    echo "paradox.omp.json" > "$SHARED_THEME_FILE"
+    echo "jandedobbeleer.omp.json" > "$SHARED_THEME_FILE"
 fi
 
 # 4. Create WSL theme directory
@@ -192,7 +192,7 @@ chmod +x "$WSL_LOADER"
 # 7. Inject loader into ~/.bashrc
 if ! grep -q "source ~/.poshloader" "$WSL_HOME/.bashrc"; then
     echo "" >> "$WSL_HOME/.bashrc"
-    echo "# SemperFix-OMP loader" >> "$WSL_HOME/.bashrc"
+    #echo "# SemperFix-OMP loader" >> "$WSL_HOME/.bashrc"
     echo "source ~/.poshloader" >> "$WSL_HOME/.bashrc"
 fi
 
